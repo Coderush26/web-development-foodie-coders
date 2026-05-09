@@ -185,3 +185,46 @@ GitHub Actions now runs the core verification pipeline automatically on every pu
 - `npm test`
 - `npm run lint`
 - `npm run build`
+
+# Phase 1 requires no external API to run.
+
+# Leave AI_PROVIDER=local until Phase 5 if you want the no-key fallback parser.
+
+# Fleet Crisis Ops runs locally without any external API key by default.
+
+# Keep AI_PROVIDER=local unless you explicitly want model-backed distress extraction.
+
+HOSTNAME=0.0.0.0
+PORT=3000
+
+AI_PROVIDER=local
+OPENAI_API_KEY=
+OPENAI_BASE_URL=https://api.openai.com/v1
+OPENAI_MODEL=gpt-4.1-mini
+
+# Open-Meteo is the default weather source and does not require a key.
+
+# If it is temporarily unavailable, the server falls back to deterministic synthetic weather.
+
+WEATHER_PROVIDER=open-meteo
+
+# Optional protected-mode auth + database expansion.
+
+# The default challenge flow still works without these values.
+
+# Add them when you want the Phase 2 auth layer.
+
+# DATABASE_URL is the Postgres connection string.
+
+# It is not the same thing as an auth provider URL.
+
+APP_BASE_URL=http://localhost:3000
+DATABASE_URL=postgresql://postgres:postgres@localhost:5433/fleet_crisis_ops
+AUTH_BOOTSTRAP_ADMIN_EMAIL=admin@fleet.local
+AUTH_BOOTSTRAP_ADMIN_PASSWORD=ChangeMe123!
+AUTH_BOOTSTRAP_ADMIN_NAME=Fleet Super Admin
+EMAIL_PROVIDER=console
+EMAIL_FROM=ops@local.test
+RESEND_API_KEY=
+MAILPIT_SMTP_HOST=localhost
+MAILPIT_SMTP_PORT=1025
