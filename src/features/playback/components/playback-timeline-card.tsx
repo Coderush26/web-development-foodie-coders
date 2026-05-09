@@ -40,7 +40,7 @@ export function PlaybackTimelineCard({
             onClick={onJumpToLive}
             className={`rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] ${
               playbackMode === "live"
-                ? "border-accent/20 bg-emerald-50 text-accent"
+                ? "border-accent bg-accent text-white shadow-sm shadow-accent/20"
                 : "border-line bg-white/80 text-muted"
             }`}
           >
@@ -52,7 +52,7 @@ export function PlaybackTimelineCard({
             disabled={frames.length === 0}
             className={`rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] ${
               playbackMode === "playback"
-                ? "border-accent-strong/20 bg-orange-50 text-accent-strong"
+                ? "border-accent-strong bg-accent-strong text-white shadow-sm shadow-orange-900/10"
                 : "border-line bg-white/80 text-muted"
             } disabled:cursor-not-allowed disabled:opacity-50`}
           >

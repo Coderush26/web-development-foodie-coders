@@ -20,11 +20,11 @@ export function ServiceReadiness({ services, envNames }: ServiceReadinessProps) 
           External integrations
         </p>
         <h2 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
-          API and env planning
+          Integration settings
         </h2>
         <p className="mt-3 text-sm leading-7 text-muted">
-          Phase 1 does not require any external API to run. These names are fixed now so later
-          phases can reuse them without guesswork.
+          The project can run locally without external API keys by default. These settings simply
+          show which integrations are available and which environment names are recognized.
         </p>
       </div>
 
@@ -37,7 +37,7 @@ export function ServiceReadiness({ services, envNames }: ServiceReadinessProps) 
                 <p className="mt-1 text-sm text-muted">{service.purpose}</p>
               </div>
               <span className="rounded-full bg-surface-muted px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-                {service.requiredInPhase}
+                {service.apiKeyEnv ? "optional key" : "built-in"}
               </span>
             </div>
             <p className="mt-3 text-sm leading-7 text-muted">{service.notes}</p>

@@ -18,15 +18,22 @@ export function ShipRosterPreview({ ships }: ShipRosterPreviewProps) {
     <section className="rounded-4xl border border-line bg-surface p-6 shadow-lg shadow-slate-900/5">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <p className="font-mono text-xs uppercase tracking-[0.24em] text-accent">Seed preview</p>
+          <p className="font-mono text-xs uppercase tracking-[0.24em] text-accent">
+            Captain access
+          </p>
           <h2 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
-            Captain sample ships
+            Bridge consoles
           </h2>
         </div>
         <span className="rounded-full bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-          ship-scoped routes ready
+          ship-scoped dashboards
         </span>
       </div>
+
+      <p className="mt-4 text-sm leading-7 text-muted">
+        Open any of these captain routes to view a live ship-scoped console with directives, alerts,
+        route status, and nearby traffic context.
+      </p>
 
       <div className="mt-5 grid gap-3">
         {ships.map((ship) => (

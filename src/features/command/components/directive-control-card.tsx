@@ -208,7 +208,7 @@ export function DirectiveControlCard({
             <button
               type="submit"
               disabled={isPending}
-              className="rounded-full border border-accent/20 bg-emerald-50 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-accent disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-full border border-accent bg-accent px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-white shadow-sm shadow-accent/20 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isPending ? "Sending..." : "Send directive"}
             </button>

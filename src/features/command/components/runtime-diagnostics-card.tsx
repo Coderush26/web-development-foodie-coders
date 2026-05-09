@@ -37,7 +37,7 @@ export function RuntimeDiagnosticsCard() {
   return (
     <SectionCard
       title="Runtime diagnostics"
-      description="Judge-facing instrumentation for cadence, fallback mode, alert timing, and playback depth during live demos."
+      description="Operational diagnostics for cadence, fallback mode, alert timing, and playback depth."
       tone={resolveTone(
         diagnostics?.lastTickDurationMs,
         diagnostics?.weather.usingFallback ?? false

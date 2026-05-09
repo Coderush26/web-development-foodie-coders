@@ -134,7 +134,7 @@ export function CaptainDirectiveInbox({
                         type="button"
                         onClick={() => onAcceptDirective(directive.id)}
                         disabled={isPending}
-                        className="rounded-full border border-accent/20 bg-emerald-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-accent disabled:cursor-not-allowed disabled:opacity-50"
+                        className="rounded-full border border-accent bg-accent px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white shadow-sm shadow-accent/20 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {isPending ? "Working..." : "Accept"}
                       </button>
@@ -142,7 +142,7 @@ export function CaptainDirectiveInbox({
                         type="button"
                         onClick={() => onEscalateDirective(directive.id, distressMessage)}
                         disabled={isPending || distressMessage.trim().length === 0}
-                        className="rounded-full border border-accent-strong/20 bg-orange-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-accent-strong disabled:cursor-not-allowed disabled:opacity-50"
+                        className="rounded-full border border-accent-strong bg-accent-strong px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white shadow-sm shadow-orange-900/10 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {isPending ? "Working..." : "Escalate distress"}
                       </button>

@@ -12,14 +12,14 @@ export function RoleEntryCard({ title, href, summary, capabilities }: RoleEntryC
     <section className="rounded-4xl border border-line bg-surface p-6 shadow-lg shadow-slate-900/5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="font-mono text-xs uppercase tracking-[0.24em] text-accent">Role route</p>
+          <p className="font-mono text-xs uppercase tracking-[0.24em] text-accent">Dashboard</p>
           <h2 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">{title}</h2>
         </div>
         <Link
           href={href}
-          className="rounded-full bg-foreground px-4 py-2 text-sm font-semibold text-background"
+          className="rounded-full border border-accent bg-accent px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-accent/20"
         >
-          Open
+          Open dashboard
         </Link>
       </div>
 

@@ -35,7 +35,7 @@ export const roleDefinitions = {
     capabilities: [
       "Ship-scoped situational view",
       "Directive accept or distress escalation",
-      "Future route, weather, and fuel context",
+      "Route, weather, and fuel awareness",
     ],
   },
 } as const;

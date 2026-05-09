@@ -27,3 +27,4 @@
 - `Dockerfile`: simple production container build for the full custom-server app.
 - `docker-compose.yml`: clone-and-run local deployment entry for `docker compose up`.
 - `README.md`: current run instructions, environment notes, assumptions, and demo validation guidance.
+- `docs/project-guide.md`: operator-friendly explanation of the pages, main buttons, features, and challenge assumptions.

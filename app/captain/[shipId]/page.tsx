@@ -2,12 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AppShell } from "@/components/shell/app-shell";
-import { SectionCard } from "@/components/shell/section-card";
-import {
-  getPortById,
-  getShipById,
-  listCaptainRouteSamples,
-} from "@/features/fleet/data/scenario-seed";
+import { getShipById } from "@/features/fleet/data/scenario-seed";
+import { CaptainLiveDashboard } from "@/features/fleet/components/captain-live-dashboard";
 
 type CaptainPageProps = {
   params: Promise<{
@@ -23,100 +19,29 @@ export default async function CaptainPage({ params }: CaptainPageProps) {
     notFound();
   }
 
-  const destination = getPortById(ship.destinationPortId);
-  const captainSamples = listCaptainRouteSamples();
-
   return (
     <AppShell
-      eyebrow="Phase 1 / Captain"
-      title={`${ship.name} bridge console`}
-      description="The captain route is already ship-scoped. Later phases will add directive handling, distress escalation, and live route awareness without changing the page contract."
+      eyebrow="Captain console"
+      title={`${ship.name} bridge`}
+      description="Operate a live ship-scoped dashboard for directives, alerts, route status, weather awareness, and distress escalation."
       actions={
         <div className="flex flex-wrap gap-3">
           <Link
             href="/command"
-            className="rounded-full border border-line bg-white/70 px-4 py-2 text-sm font-semibold text-foreground"
+            className="rounded-full border border-accent bg-accent px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-accent/20"
           >
-            Open Command shell
+            Open command center
           </Link>
           <Link
             href="/"
-            className="rounded-full bg-foreground px-4 py-2 text-sm font-semibold text-background"
+            className="rounded-full border border-line bg-white/70 px-4 py-2 text-sm font-semibold text-foreground"
           >
-            Back to overview
+            Back to navigation
           </Link>
         </div>
       }
     >
-      <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-        <SectionCard
-          title="Assigned vessel"
-          description="This page is already keyed by ship ID and pulls shared seed data through the domain layer."
-        >
-          <dl className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <dt className="text-sm text-muted">Ship ID</dt>
-              <dd className="mt-1 text-2xl font-semibold text-foreground">{ship.shipId}</dd>
-            </div>
-            <div>
-              <dt className="text-sm text-muted">Operational status</dt>
-              <dd className="mt-1 text-2xl font-semibold text-foreground">{ship.status}</dd>
-            </div>
-            <div>
-              <dt className="text-sm text-muted">Cargo</dt>
-              <dd className="mt-1 text-sm leading-7 text-muted">{ship.cargo}</dd>
-            </div>
-            <div>
-              <dt className="text-sm text-muted">Destination</dt>
-              <dd className="mt-1 text-sm leading-7 text-muted">
-                {destination?.name ?? ship.destinationPortId}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-sm text-muted">Speed / heading</dt>
-              <dd className="mt-1 text-sm leading-7 text-muted">
-                {ship.speedKnots} knots / {ship.headingDegrees}&deg;
-              </dd>
-            </div>
-            <div>
-              <dt className="text-sm text-muted">Fuel</dt>
-              <dd className="mt-1 text-sm leading-7 text-muted">{ship.fuelTons} tons remaining</dd>
-            </div>
-          </dl>
-        </SectionCard>
-
-        <SectionCard
-          title="Captain roadmap"
-          description="Phase 1 only establishes context; interaction is added later."
-        >
-          <ul className="space-y-3 text-sm leading-7 text-muted">
-            <li>Phase 3 adds a ship-scoped live map and shared situational context.</li>
-            <li>Phase 5 adds directive inbox, accept flow, and distress escalation.</li>
-            <li>Phase 6 adds route, fuel feasibility, weather, and proximity awareness.</li>
-          </ul>
-        </SectionCard>
-      </div>
-
-      <SectionCard
-        title="Quick captain route checks"
-        description="Use these sample links to verify ship-scoped rendering without changing the route structure later."
-      >
-        <div className="grid gap-3 md:grid-cols-3">
-          {captainSamples.map((sample) => (
-            <Link
-              key={sample.shipId}
-              href={sample.href}
-              className="rounded-2xl border border-line bg-white/70 p-4 transition-transform hover:-translate-y-0.5"
-            >
-              <p className="font-mono text-xs uppercase tracking-[0.24em] text-accent">
-                {sample.shipId}
-              </p>
-              <p className="mt-2 text-lg font-semibold text-foreground">{sample.name}</p>
-              <p className="mt-1 text-sm text-muted">{sample.destinationName}</p>
-            </Link>
-          ))}
-        </div>
-      </SectionCard>
+      <CaptainLiveDashboard shipId={shipId} />
     </AppShell>
   );
 }

@@ -1,16 +1,9 @@
 import Link from "next/link";
 
 import { RoleEntryCard } from "@/components/home/role-entry-card";
-import { ServiceReadiness } from "@/components/home/service-readiness";
 import { ShipRosterPreview } from "@/components/home/ship-roster-preview";
 import { SectionCard } from "@/components/shell/section-card";
-import { externalServices, optionalEnvNames } from "@/config/runtime";
-import {
-  appCopy,
-  gradingThresholds,
-  phaseOneWorkstreams,
-  roleDefinitions,
-} from "@/config/scenario";
+import { appCopy, gradingThresholds, roleDefinitions } from "@/config/scenario";
 import { getFleetOverview, listCaptainRouteSamples } from "@/features/fleet/data/scenario-seed";
 
 export default function Home() {
@@ -22,6 +15,20 @@ export default function Home() {
     { label: "Live tick target", value: `${gradingThresholds.minUpdateRateHz} Hz` },
     { label: "Alert deadline", value: `${gradingThresholds.geofenceAlertDeadlineMs / 1000}s` },
   ];
+  const operationalHighlights = [
+    {
+      title: "Live command control",
+      body: "Monitor all 15 ships, draw restricted zones, handle alerts, and issue directives from one operational dashboard.",
+    },
+    {
+      title: "Captain response",
+      body: "Each captain route is ship-scoped, receives directives in real time, and can accept or escalate distress with structured impact.",
+    },
+    {
+      title: "Playback and review",
+      body: "Command can switch into read-only playback, scrub the last hour of fleet history, and review the related event trail.",
+    },
+  ];
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-8 px-6 py-8 lg:px-10 lg:py-12">
@@ -32,7 +39,7 @@ export default function Home() {
           <div className="space-y-6">
             <div className="space-y-4">
               <p className="font-mono text-sm uppercase tracking-[0.28em] text-accent">
-                Phase 1 foundation
+                Operational navigation
               </p>
               <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-foreground md:text-6xl">
                 {appCopy.name}
@@ -43,21 +50,15 @@ export default function Home() {
             <div className="flex flex-wrap gap-3">
               <Link
                 href={roleDefinitions.command.href}
-                className="rounded-full bg-foreground px-5 py-3 text-sm font-semibold text-background transition-transform hover:-translate-y-0.5"
+                className="rounded-full border border-accent bg-accent px-5 py-3 text-sm font-semibold text-white shadow-sm shadow-accent/20 transition-transform hover:-translate-y-0.5"
               >
-                Open Command shell
+                Open command center
               </Link>
               <Link
                 href={roleDefinitions.captain.href}
-                className="rounded-full border border-line bg-white/65 px-5 py-3 text-sm font-semibold text-foreground transition-transform hover:-translate-y-0.5"
+                className="rounded-full border border-foreground bg-foreground px-5 py-3 text-sm font-semibold text-white shadow-sm shadow-slate-900/10 transition-transform hover:-translate-y-0.5"
               >
-                Open Captain shell
-              </Link>
-              <Link
-                href="/docs/phases.md"
-                className="rounded-full border border-dashed border-line px-5 py-3 text-sm font-semibold text-muted transition-transform hover:-translate-y-0.5"
-              >
-                Review execution phases
+                Open captain console
               </Link>
             </div>
 
@@ -72,8 +73,8 @@ export default function Home() {
           </div>
 
           <SectionCard
-            title="Scenario snapshot"
-            description="Phase 1 keeps the app static but grounded in the real grading seed."
+            title="Operational scope"
+            description="Use the home page as a routing point into the live command and captain dashboards."
             tone="accent"
           >
             <dl className="grid gap-4 sm:grid-cols-2">
@@ -101,6 +102,10 @@ export default function Home() {
                 </dd>
               </div>
             </dl>
+            <div className="mt-5 rounded-2xl border border-line bg-white/70 p-4 text-sm leading-7 text-muted">
+              Launch Fleet Command to manage the whole situation, or open a captain console to work
+              from a single ship&apos;s bridge view.
+            </div>
           </SectionCard>
         </div>
       </section>
@@ -112,17 +117,38 @@ export default function Home() {
 
       <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <ShipRosterPreview ships={captainSamples} />
-        <ServiceReadiness services={externalServices} envNames={optionalEnvNames} />
+        <SectionCard
+          title="What each dashboard handles"
+          description="The command and captain routes share the same live backend, but each page is focused on a different operational role."
+        >
+          <div className="grid gap-3">
+            {operationalHighlights.map((item) => (
+              <div key={item.title} className="rounded-2xl border border-line bg-white/70 p-4">
+                <h3 className="text-base font-semibold text-foreground">{item.title}</h3>
+                <p className="mt-2 text-sm leading-7 text-muted">{item.body}</p>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {phaseOneWorkstreams.map((workstream) => (
-          <SectionCard
-            key={workstream.title}
-            title={workstream.title}
-            description={workstream.body}
-          >
-            <p className="text-sm leading-7 text-muted">{workstream.detail}</p>
+      <section className="grid gap-4 md:grid-cols-3">
+        {[
+          {
+            title: "Restricted zones and alerts",
+            body: "Command can draw or edit zones, and the shared alert model tracks geofence, routing, weather, distress, and proximity issues in one place.",
+          },
+          {
+            title: "Directives and distress",
+            body: "Command sends directives, captains respond immediately, and free-form distress messages are converted into structured operational alerts.",
+          },
+          {
+            title: "Playback and diagnostics",
+            body: "The command dashboard includes a playback timeline and runtime diagnostics for cadence, weather mode, and buffer depth.",
+          },
+        ].map((item) => (
+          <SectionCard key={item.title} title={item.title}>
+            <p className="text-sm leading-7 text-muted">{item.body}</p>
           </SectionCard>
         ))}
       </section>
