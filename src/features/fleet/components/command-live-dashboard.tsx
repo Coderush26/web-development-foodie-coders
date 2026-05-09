@@ -72,13 +72,14 @@ export function CommandLiveDashboard() {
         </div>
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-[1.45fr_0.85fr]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_minmax(22rem,0.82fr)] 2xl:grid-cols-[minmax(0,1.85fr)_minmax(23rem,0.78fr)]">
         <SectionCard
           title="Fleet map"
+          tone="accent"
           description={
             isPlaybackMode
               ? "Playback mode freezes the fleet map at the selected historical frame. Historical routes, alerts, and weather remain visible, while live controls stay disabled."
-              : "The command surface uses the live authoritative feed as its main interaction layer. Draw, edit, or remove restricted zones directly on the map and click ships to inspect them."
+              : "The command surface is now tuned around the map: click any ship to focus it, use the map toolbar for live follow or fit controls, and open the expanded view when you need a wider operational theater."
           }
         >
           {errors.length > 0 ? (

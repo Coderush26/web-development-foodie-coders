@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildFleetRuntimeDiagnostics } from "@/server/diagnostics/runtime";
 import { createInitialFleetSnapshot } from "@/server/simulation/engine";
+import { withLocalAiProvider } from "@/server/testing/with-local-ai-provider";
 import type { PlaybackHistoryPayload } from "@/types/playback";
 import type { FleetRuntimeSnapshot } from "@/types/realtime";
 
@@ -25,7 +25,10 @@ function createPlaybackHistoryPayload(snapshot: FleetRuntimeSnapshot): PlaybackH
   };
 }
 
-test("buildFleetRuntimeDiagnostics summarizes runtime, playback, weather, and distress mode", () => {
+test("buildFleetRuntimeDiagnostics summarizes runtime, playback, weather, and distress mode", async () => {
+  const { buildFleetRuntimeDiagnostics } = await withLocalAiProvider(
+    async () => import("@/server/diagnostics/runtime")
+  );
   const snapshot = createInitialFleetSnapshot();
   const diagnosticSnapshot: FleetRuntimeSnapshot = {
     ...snapshot,

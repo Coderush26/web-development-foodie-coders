@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { getFleetScenarioSeed } from "@/features/fleet/data/scenario-seed";
-import { extractDistressAssessment } from "@/server/directives/distress-extractor";
 import {
   acceptDirective,
   applyAcceptedDirectivesToSnapshot,
@@ -10,6 +9,7 @@ import {
   issueDirective,
 } from "@/server/directives/service";
 import { advanceFleetSnapshot, createInitialFleetSnapshot } from "@/server/simulation/engine";
+import { withLocalAiProvider } from "@/server/testing/with-local-ai-provider";
 
 function getShip(snapshot: ReturnType<typeof createInitialFleetSnapshot>, shipId: string) {
   const ship = snapshot.ships.find((entry) => entry.shipId === shipId);
@@ -204,6 +204,9 @@ test("distress escalation uses the fallback parser and creates a structured dist
   const directive = issuedSnapshot.directives[0];
   const distressMessage =
     "Mayday. Fire in the engine room, 2 crew injured, and we have lost propulsion.";
+  const { extractDistressAssessment } = await withLocalAiProvider(
+    async () => import("@/server/directives/distress-extractor")
+  );
   const distressAssessment = await extractDistressAssessment(distressMessage);
   const escalatedSnapshot = escalateDirective(
     issuedSnapshot,

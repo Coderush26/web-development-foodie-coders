@@ -3,16 +3,16 @@
 @import "leaflet-draw/dist/leaflet.draw.css";
 
 :root {
-  --background: #f8f4eb;
-  --background-strong: #e6eef0;
-  --surface: rgba(255, 253, 246, 0.78);
-  --surface-strong: #fffdf8;
-  --surface-muted: rgba(229, 237, 239, 0.92);
-  --foreground: #12283a;
-  --muted: #587080;
+  --background: #edf2ef;
+  --background-strong: #dce9ea;
+  --surface: rgba(252, 255, 251, 0.76);
+  --surface-strong: #ffffff;
+  --surface-muted: rgba(230, 240, 239, 0.94);
+  --foreground: #11273a;
+  --muted: #557081;
   --accent: #0f766e;
-  --accent-strong: #c2410c;
-  --line: rgba(18, 40, 58, 0.14);
+  --accent-strong: #c55a11;
+  --line: rgba(17, 39, 58, 0.12);
 }
 
 @theme inline {
@@ -36,17 +36,45 @@
 
 html {
   min-height: 100%;
+  background: #edf2ef;
 }
 
 body {
+  position: relative;
   min-height: 100%;
   background: var(--background);
   background-image:
-    radial-gradient(circle at top left, rgba(15, 118, 110, 0.18), transparent 28%),
-    radial-gradient(circle at 82% 16%, rgba(194, 65, 12, 0.16), transparent 22%),
-    linear-gradient(180deg, #faf7ef 0%, #edf2f4 52%, #f8f4eb 100%);
+    radial-gradient(circle at 10% 12%, rgba(15, 118, 110, 0.16), transparent 26%),
+    radial-gradient(circle at 86% 10%, rgba(197, 90, 17, 0.16), transparent 22%),
+    linear-gradient(180deg, #f5f8f4 0%, #e9eff1 48%, #edf2ef 100%);
   color: var(--foreground);
   font-family: var(--font-space-grotesk), sans-serif;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(17, 39, 58, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(17, 39, 58, 0.025) 1px, transparent 1px);
+  background-size: 80px 80px;
+  mask-image: radial-gradient(circle at center, black 38%, transparent 88%);
+  opacity: 0.4;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: auto -8rem -12rem auto;
+  height: 28rem;
+  width: 28rem;
+  pointer-events: none;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(15, 118, 110, 0.14), transparent 70%);
+  filter: blur(18px);
 }
 
 a {
@@ -60,6 +88,18 @@ a {
 .action-button-light:active,
 .action-button-light:focus {
   color: #ffffff !important;
+}
+
+.action-button-light {
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    filter 180ms ease;
+}
+
+.action-button-light:hover {
+  transform: translateY(-1px);
+  filter: saturate(1.04);
 }
 
 ::selection {
@@ -77,10 +117,20 @@ a {
 }
 
 .fleet-ship-marker {
+  position: relative;
   display: block;
-  height: 16px;
-  width: 16px;
+  height: 24px;
+  width: 24px;
+}
+
+.fleet-ship-marker__core,
+.fleet-ship-marker__pulse {
+  position: absolute;
+  inset: 0;
   border-radius: 999px;
+}
+
+.fleet-ship-marker__core {
   border: 2px solid rgba(255, 253, 248, 0.95);
   background: #12283a;
   box-shadow: 0 10px 22px rgba(18, 40, 58, 0.22);
@@ -90,17 +140,178 @@ a {
     opacity 160ms ease;
 }
 
-.fleet-ship-marker--selected {
-  transform: scale(1.3);
+.fleet-ship-marker__pulse {
+  background: rgba(15, 118, 110, 0.18);
+  transform: scale(0.62);
+  opacity: 0;
+}
+
+.fleet-ship-marker--selected .fleet-ship-marker__core {
+  transform: scale(1.08);
   background: #0f766e;
 }
 
-.fleet-ship-marker--owned {
+.fleet-ship-marker--selected .fleet-ship-marker__pulse {
+  opacity: 1;
+  animation: fleet-marker-pulse 1.6s ease-out infinite;
+}
+
+.fleet-ship-marker--owned .fleet-ship-marker__core {
   background: #c2410c;
 }
 
-.fleet-ship-marker--context {
+.fleet-ship-marker--context .fleet-ship-marker__core,
+.fleet-ship-marker--context .fleet-ship-marker__pulse {
   opacity: 0.48;
+}
+
+@keyframes fleet-marker-pulse {
+  0% {
+    transform: scale(0.68);
+    opacity: 0.55;
+  }
+
+  100% {
+    transform: scale(1.7);
+    opacity: 0;
+  }
+}
+
+.fleet-map-surface {
+  box-shadow: 0 28px 84px -48px rgba(17, 39, 58, 0.72);
+}
+
+.fleet-map-surface::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), transparent 24%);
+  z-index: 300;
+}
+
+.fleet-map-surface__bar {
+  pointer-events: none;
+}
+
+.fleet-map-surface__chip,
+.fleet-map-surface__toggle,
+.fleet-map-toolbar__button,
+.fleet-map-toolbar__meta {
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  background: rgba(248, 252, 251, 0.84);
+  box-shadow: 0 18px 40px -28px rgba(17, 39, 58, 0.64);
+  backdrop-filter: blur(20px);
+}
+
+.fleet-map-surface__chip,
+.fleet-map-surface__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  padding: 0.72rem 1rem;
+  color: var(--foreground);
+}
+
+.fleet-map-surface__chip {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.fleet-map-surface__chip--muted {
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--muted);
+}
+
+.fleet-map-surface__toggle {
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 700;
+  transition:
+    transform 160ms ease,
+    background-color 160ms ease;
+}
+
+.fleet-map-surface__toggle:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.fleet-map .leaflet-container {
+  background:
+    radial-gradient(circle at top, rgba(125, 211, 252, 0.22), transparent 32%),
+    linear-gradient(180deg, rgba(222, 239, 243, 0.92), rgba(200, 224, 231, 0.78));
+}
+
+.fleet-map-toolbar {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  z-index: 500;
+  display: flex;
+  max-width: min(100% - 2rem, 42rem);
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.fleet-map-toolbar__meta {
+  min-width: 11rem;
+  border-radius: 1.25rem;
+  padding: 0.82rem 1rem;
+}
+
+.fleet-map-toolbar__eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.fleet-map-toolbar__title {
+  margin-top: 0.35rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.fleet-map-toolbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.fleet-map-toolbar__button {
+  cursor: pointer;
+  border-radius: 999px;
+  padding: 0.78rem 1rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--foreground);
+  transition:
+    transform 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.fleet-map-toolbar__button:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.fleet-map-toolbar__button--active {
+  background: rgba(15, 118, 110, 0.12);
+  color: var(--accent);
+}
+
+.fleet-map-toolbar__button--compact {
+  min-width: 2.85rem;
+  justify-content: center;
+  padding-inline: 0.8rem;
 }
 
 .fleet-map .leaflet-control-zoom a {
@@ -132,4 +343,24 @@ a {
   background: rgba(255, 253, 248, 0.96);
   color: var(--foreground);
   box-shadow: 0 10px 24px rgba(18, 40, 58, 0.08);
+}
+
+@media (max-width: 768px) {
+  .fleet-map-toolbar {
+    right: 1rem;
+    max-width: none;
+  }
+
+  .fleet-map-toolbar__meta {
+    width: 100%;
+  }
+
+  .fleet-map-surface__bar {
+    inset-inline: 0.75rem;
+    top: 0.75rem;
+  }
+
+  .fleet-map-surface__chip--muted {
+    display: none;
+  }
 }

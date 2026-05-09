@@ -1,23 +1,20 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-
 import { divIcon, type LatLngBoundsExpression } from "leaflet";
-import {
-  CircleMarker,
-  MapContainer,
-  Marker,
-  Polygon,
-  TileLayer,
-  Tooltip,
-  useMap,
-} from "react-leaflet";
+import { CircleMarker, MapContainer, Marker, Polygon, TileLayer, Tooltip } from "react-leaflet";
 
-import { getFleetScenarioSeed, getPortById } from "@/features/fleet/data/scenario-seed";
+import { getFleetScenarioSeed } from "@/features/fleet/data/scenario-seed";
 import { FleetOperationalOverlays } from "@/features/map/components/fleet-operational-overlays";
+import {
+  FleetMapViewportController,
+  FleetMapViewportControls,
+  getCaptainBounds,
+  getFleetBounds,
+  toLatLng,
+  type FleetMapPresentationMode,
+} from "@/features/map/components/fleet-map-viewport";
 import type { FleetDisplayShip } from "@/features/fleet/hooks/use-interpolated-fleet-view";
 import { RestrictedZoneControls } from "@/features/map/components/restricted-zone-controls";
-import type { GeoPoint } from "@/types/fleet";
 import type { WeatherSnapshot } from "@/types/weather";
 import type { RestrictedZone, RestrictedZoneDraft } from "@/types/zones";
 
@@ -33,13 +30,12 @@ export type FleetMapCanvasProps = {
   onUpdateZone?: (zoneId: string, zone: RestrictedZoneDraft) => void | Promise<void>;
   onDeleteZone?: (zoneId: string) => void | Promise<void>;
   captainShipId?: string;
+  followSelection?: boolean;
+  onToggleFollowSelection?: () => void;
+  presentationMode?: FleetMapPresentationMode;
 };
 
 const scenarioSeed = getFleetScenarioSeed();
-
-function toLatLng(point: GeoPoint): [number, number] {
-  return [point.lat, point.lng];
-}
 
 function createShipIcon(isSelected: boolean, isCaptainOwned: boolean, isCaptainContext: boolean) {
   const classNames = [
@@ -53,79 +49,10 @@ function createShipIcon(isSelected: boolean, isCaptainOwned: boolean, isCaptainC
 
   return divIcon({
     className: "fleet-ship-marker-wrapper",
-    html: `<span class="${classNames}"></span>`,
+    html: `<span class="${classNames}"><span class="fleet-ship-marker__pulse"></span><span class="fleet-ship-marker__core"></span></span>`,
     iconSize: [26, 26],
     iconAnchor: [13, 13],
   });
-}
-
-function getFleetBounds(): LatLngBoundsExpression {
-  return [
-    [scenarioSeed.bounds.south, scenarioSeed.bounds.west],
-    [scenarioSeed.bounds.north, scenarioSeed.bounds.east],
-  ];
-}
-
-function getCaptainBounds(ship: FleetDisplayShip): LatLngBoundsExpression {
-  const destination = getPortById(ship.destinationPortId)?.position;
-  const latitudes = [ship.displayPosition.lat, destination?.lat ?? ship.displayPosition.lat];
-  const longitudes = [ship.displayPosition.lng, destination?.lng ?? ship.displayPosition.lng];
-
-  return [
-    [Math.min(...latitudes) - 0.45, Math.min(...longitudes) - 0.45],
-    [Math.max(...latitudes) + 0.45, Math.max(...longitudes) + 0.45],
-  ];
-}
-
-function CommandSelectionController({ ship }: { ship: FleetDisplayShip | null }) {
-  const map = useMap();
-  const previousShipIdRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (!ship) {
-      return;
-    }
-
-    if (previousShipIdRef.current === ship.shipId) {
-      return;
-    }
-
-    previousShipIdRef.current = ship.shipId;
-
-    map.flyTo(toLatLng(ship.displayPosition), Math.max(map.getZoom(), 7), {
-      duration: 0.75,
-    });
-  }, [map, ship]);
-
-  return null;
-}
-
-function CaptainFollowController({ ship }: { ship: FleetDisplayShip | null }) {
-  const map = useMap();
-  const lastPanAtRef = useRef(0);
-
-  useEffect(() => {
-    if (!ship) {
-      return;
-    }
-
-    const shipPoint = toLatLng(ship.displayPosition);
-
-    if (map.getBounds().pad(-0.18).contains(shipPoint)) {
-      return;
-    }
-
-    const now = performance.now();
-
-    if (now - lastPanAtRef.current < 600) {
-      return;
-    }
-
-    lastPanAtRef.current = now;
-    map.panTo(shipPoint, { animate: true, duration: 0.8 });
-  }, [map, ship]);
-
-  return null;
 }
 
 export function FleetMapCanvas({
@@ -140,15 +67,30 @@ export function FleetMapCanvas({
   onUpdateZone,
   onDeleteZone,
   captainShipId,
+  followSelection = role === "captain",
+  onToggleFollowSelection,
+  presentationMode = "standard",
 }: FleetMapCanvasProps) {
   const selectedShip = ships.find((ship) => ship.shipId === selectedShipId) ?? null;
   const initialBounds =
     role === "captain" && selectedShip ? getCaptainBounds(selectedShip) : getFleetBounds();
+  const mapHeightClass =
+    presentationMode === "expanded"
+      ? "fleet-map h-full min-h-[75vh] w-full"
+      : "fleet-map h-[32rem] w-full lg:h-[44rem] 2xl:h-[50rem]";
 
   return (
     <MapContainer
       bounds={initialBounds}
-      className="fleet-map h-104 w-full lg:h-136"
+      className={mapHeightClass}
+      maxBounds={getFleetBounds() as LatLngBoundsExpression}
+      maxBoundsViscosity={0.85}
+      minZoom={6.25}
+      maxZoom={10.75}
+      zoomControl={false}
+      zoomDelta={0.5}
+      zoomSnap={0.25}
+      wheelPxPerZoomLevel={160}
       scrollWheelZoom
       preferCanvas
     >
@@ -160,6 +102,13 @@ export function FleetMapCanvas({
       <Polygon
         positions={scenarioSeed.navigableWater.map(toLatLng)}
         pathOptions={{ color: "#0f766e", fillColor: "#d7ece8", fillOpacity: 0.24, weight: 2 }}
+      />
+
+      <FleetMapViewportControls
+        role={role}
+        ship={selectedShip}
+        followSelection={followSelection}
+        onToggleFollowSelection={onToggleFollowSelection ?? (() => undefined)}
       />
 
       <FleetOperationalOverlays
@@ -219,11 +168,12 @@ export function FleetMapCanvas({
         );
       })}
 
-      {role === "command" ? (
-        <CommandSelectionController ship={selectedShip} />
-      ) : (
-        <CaptainFollowController ship={selectedShip} />
-      )}
+      <FleetMapViewportController
+        role={role}
+        ship={selectedShip}
+        followSelection={followSelection}
+        presentationMode={presentationMode}
+      />
     </MapContainer>
   );
 }

@@ -48,10 +48,11 @@ export function CaptainLiveDashboard({ shipId }: CaptainLiveDashboardProps) {
         highlightedShip={selectedShip}
       />
 
-      <div className="grid gap-6 xl:grid-cols-[1.45fr_0.85fr]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_minmax(22rem,0.82fr)] 2xl:grid-cols-[minmax(0,1.85fr)_minmax(23rem,0.78fr)]">
         <SectionCard
           title="Bridge map"
-          description="Your vessel stays in focus while restricted zones and the rest of the fleet remain visible as shared context."
+          tone="accent"
+          description="Your vessel stays in focus while restricted zones and nearby traffic remain visible. Use the map toolbar to refocus, follow live movement, or open the expanded bridge view."
         >
           {[error, captainControlError].filter(Boolean).length > 0 ? (
             <div className="mb-4 grid gap-2">

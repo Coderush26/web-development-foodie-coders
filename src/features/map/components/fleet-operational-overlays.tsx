@@ -84,9 +84,25 @@ export function FleetOperationalOverlays({
 }: FleetOperationalOverlaysProps) {
   const visibleRouteShips = resolveVisibleRouteShips(ships, role, captainShipId);
   const weatherCells = weather?.cells.filter((cell) => cell.severity !== "clear") ?? [];
+  const highlightedShip = ships.find((ship) => ship.shipId === selectedShipId) ?? null;
 
   return (
     <>
+      {highlightedShip ? (
+        <Circle
+          center={toLatLng(highlightedShip.displayPosition)}
+          radius={role === "captain" ? 13_000 : 10_000}
+          pathOptions={{
+            color: "#fef3c7",
+            fillColor: "#14b8a6",
+            fillOpacity: 0.08,
+            opacity: 0.92,
+            weight: 1.6,
+            dashArray: "8 10",
+          }}
+        />
+      ) : null}
+
       {weatherCells.map((cell) => {
         const style = resolveWeatherCircleStyle(cell);
 
