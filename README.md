@@ -1,38 +1,83 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/qMg4I596)
+# Fleet Crisis Ops
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+Fleet Crisis Ops is a laptop-runnable realtime shipping-crisis simulator for the Strait of Hormuz scenario. It runs a server-owned fleet simulation, streams live ship state over WebSocket, and renders separate Command and Captain map dashboards from the same authoritative runtime.
 
-## Getting Started
+## Quick Start
 
-First, run the development server:
+If someone clones this repository and just wants to run the full app, this is the command path the project now supports:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+docker compose up
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The app will be available at `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+If Docker needs to rebuild after code changes, use:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+docker compose up --build
+```
 
-## Learn More
+## Local Node.js Run
 
-To learn more about Next.js, take a look at the following resources:
+For local development without Docker:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm install
+npm run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+For a production-style local run:
 
-## Deploy on Vercel
+```bash
+npm install
+npm run build
+npm run start
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Environment
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Phase 3 does not require any external API key.
+
+The currently recognized runtime variables are:
+
+- `HOSTNAME` defaults to `0.0.0.0`
+- `PORT` defaults to `3000`
+- `AI_PROVIDER`, `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `OPENAI_MODEL`, and `WEATHER_PROVIDER` are reserved for later phases and optional integrations
+
+See [.env.example](.env.example) for the current template.
+
+## Docker Notes
+
+The Docker setup is intentionally simple:
+
+- `Dockerfile` installs dependencies, builds the Next.js app, and starts the custom Node server.
+- `docker-compose.yml` exposes port `3000` and is designed so `docker compose up` works on a fresh clone.
+- The container runs the same production command as local production mode: `npm run start`.
+
+## Vercel Note
+
+Vercel is not a full deployment target for the current architecture.
+
+This app currently depends on:
+
+- a custom Node server in [server.ts](server.ts)
+- raw WebSocket upgrades for `/api/fleet/ws`
+- one in-memory authoritative runtime shared by all connected clients
+
+That works well for local Docker and for Node hosts such as Railway, Render, Fly.io, or a VPS container, but it does not map cleanly to Vercel's serverless model. Vercel can build the Next.js app, but the live custom-server WebSocket runtime used in Phases 2 and 3 will not run there as-is.
+
+If Vercel deployment becomes mandatory later, the realtime layer will need an architectural change such as:
+
+1. moving WebSocket/realtime state to a managed service
+2. replacing the custom server with a Vercel-compatible transport pattern
+3. moving the full app deployment to a container-friendly host instead of Vercel
+
+## Validation
+
+The app has already been verified with:
+
+- `npm run lint`
+- `npm run build`
+- live HTTP checks for `/command`, `/captain/MV-1`, and `/api/fleet`
+- live WebSocket handshake checks for `/api/fleet/ws`
