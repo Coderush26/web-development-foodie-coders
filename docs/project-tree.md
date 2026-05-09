@@ -20,7 +20,9 @@
 - `server.ts`: custom Node server that owns HTTP requests and WebSocket upgrades.
 - `.env.example`: current runtime and optional external-service environment keys.
 - `src/features/fleet/hooks/use-interpolated-fleet-view.ts`: shared client interpolation layer for smooth ship motion.
-- `src/features/map/components/`: client-only Leaflet map stack shared by Command and Captain dashboards.
+- `src/features/map/components/`: client-only Leaflet map stack plus restricted-zone draw and overlay controls.
+- `src/features/alerts/components/alert-center.tsx`: shared alert stream UI used by both Command and Captain dashboards.
+- `app/api/fleet/control/route.ts`: command mutation endpoint for zone create/update/delete and alert acknowledgement or resolution.
 - `Dockerfile`: simple production container build for the full custom-server app.
 - `docker-compose.yml`: clone-and-run local deployment entry for `docker compose up`.
 - `README.md`: current run instructions plus the Docker and Vercel deployment notes.

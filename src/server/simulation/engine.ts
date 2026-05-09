@@ -168,6 +168,8 @@ export function createInitialFleetSnapshot(viewerCount = 0): FleetRuntimeSnapsho
     simulationStartedAt: generatedAt,
     tickIntervalMs: SIMULATION_TICK_MS,
     ships,
+    zones: [],
+    alerts: [],
     telemetry: getTelemetry(ships, viewerCount, 0),
   };
 }

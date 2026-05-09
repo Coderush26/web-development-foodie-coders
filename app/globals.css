@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
+@import "leaflet-draw/dist/leaflet.draw.css";
 
 :root {
   --background: #f8f4eb;
@@ -99,9 +100,22 @@ a {
 }
 
 .fleet-map .leaflet-control-zoom a,
-.fleet-map .leaflet-control-attribution {
+.fleet-map .leaflet-control-attribution,
+.fleet-map .leaflet-draw-toolbar a,
+.fleet-map .leaflet-draw-actions a {
   background: rgba(255, 253, 248, 0.9);
   border-color: rgba(18, 40, 58, 0.14);
+}
+
+.fleet-map .leaflet-draw-toolbar a,
+.fleet-map .leaflet-draw-actions a {
+  color: var(--foreground);
+}
+
+.fleet-map .leaflet-draw-actions {
+  border-radius: 999px;
+  overflow: hidden;
+  box-shadow: 0 10px 24px rgba(18, 40, 58, 0.08);
 }
 
 .fleet-map .leaflet-tooltip {

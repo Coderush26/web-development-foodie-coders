@@ -2,6 +2,13 @@
 
 Fleet Crisis Ops is a laptop-runnable realtime shipping-crisis simulator for the Strait of Hormuz scenario. It runs a server-owned fleet simulation, streams live ship state over WebSocket, and renders separate Command and Captain map dashboards from the same authoritative runtime.
 
+The current build includes:
+
+- live fleet simulation for 15 vessels
+- command-side restricted-zone drawing, editing, and deletion
+- captain read-only restricted-zone overlays
+- shared geofence alerts with acknowledge and resolve actions
+
 ## Quick Start
 
 If someone clones this repository and just wants to run the full app, this is the command path the project now supports:
@@ -37,7 +44,7 @@ npm run start
 
 ## Environment
 
-Phase 3 does not require any external API key.
+Phase 4 does not require any external API key.
 
 The currently recognized runtime variables are:
 
@@ -75,9 +82,11 @@ If Vercel deployment becomes mandatory later, the realtime layer will need an ar
 
 ## Validation
 
-The app has already been verified with:
+The app has been verified with:
 
 - `npm run lint`
 - `npm run build`
+- `npm test`
+- live `POST /api/fleet/control` checks for zone create, alert acknowledge, and alert resolve
 - live HTTP checks for `/command`, `/captain/MV-1`, and `/api/fleet`
-- live WebSocket handshake checks for `/api/fleet/ws`
+- live WebSocket snapshot checks for `/api/fleet/ws`, including zone and alert payloads

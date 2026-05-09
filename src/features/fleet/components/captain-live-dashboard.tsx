@@ -1,6 +1,8 @@
 "use client";
 
 import { SectionCard } from "@/components/shell/section-card";
+import { AlertCenter } from "@/features/alerts/components/alert-center";
+import { useAlertAudio } from "@/features/alerts/hooks/use-alert-audio";
 import { LiveSystemBar } from "@/features/fleet/components/live-system-bar";
 import { ShipDetailsCard } from "@/features/fleet/components/ship-details-card";
 import { useInterpolatedFleetView } from "@/features/fleet/hooks/use-interpolated-fleet-view";
@@ -14,6 +16,8 @@ type CaptainLiveDashboardProps = {
 export function CaptainLiveDashboard({ shipId }: CaptainLiveDashboardProps) {
   const { snapshot, displayShips, selectedShip, connectionState, error } =
     useInterpolatedFleetView(shipId);
+
+  useAlertAudio(snapshot?.alerts ?? []);
 
   const nearbyShips = selectedShip
     ? displayShips
@@ -38,18 +42,20 @@ export function CaptainLiveDashboard({ shipId }: CaptainLiveDashboardProps) {
       <div className="grid gap-6 xl:grid-cols-[1.45fr_0.85fr]">
         <SectionCard
           title="Bridge map"
-          description="Your vessel stays in focus while the rest of the fleet remains visible as muted shared context."
+          description="Your vessel stays in focus while restricted zones and the rest of the fleet remain visible as shared context."
         >
           {error ? <p className="mb-4 text-sm leading-7 text-accent-strong">{error}</p> : null}
           <FleetMap
             role="captain"
             ships={displayShips}
+            zones={snapshot?.zones ?? []}
             selectedShipId={shipId}
             captainShipId={shipId}
           />
         </SectionCard>
 
         <div className="grid gap-6">
+          <AlertCenter alerts={snapshot?.alerts ?? []} role="captain" />
           <ShipDetailsCard ship={selectedShip} roleLabel="Captain" />
 
           <SectionCard

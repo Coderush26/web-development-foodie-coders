@@ -1,4 +1,6 @@
+import type { FleetAlert } from "@/types/alerts";
 import type { ShipSnapshot } from "@/types/fleet";
+import type { RestrictedZone } from "@/types/zones";
 
 export interface FleetShipRuntimeSnapshot extends ShipSnapshot {
   lastUpdatedAt: string;
@@ -24,6 +26,8 @@ export interface FleetRuntimeSnapshot {
   simulationStartedAt: string;
   tickIntervalMs: number;
   ships: FleetShipRuntimeSnapshot[];
+  zones: RestrictedZone[];
+  alerts: FleetAlert[];
   telemetry: FleetRuntimeTelemetry;
 }
 

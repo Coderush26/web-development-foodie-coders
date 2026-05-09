@@ -10,7 +10,7 @@ const FleetMapCanvas = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-full min-h-[26rem] items-center justify-center bg-background-strong/70 text-sm text-muted lg:min-h-[34rem]">
+      <div className="flex h-full min-h-104 items-center justify-center bg-background-strong/70 text-sm text-muted lg:min-h-136">
         Loading interactive map surface...
       </div>
     ),

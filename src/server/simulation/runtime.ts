@@ -10,7 +10,10 @@ import {
   createFleetSnapshotMessage,
   parseFleetClientMessage,
 } from "@/lib/realtime/messages";
+import { evaluateGeofenceState } from "@/server/alerts/geofence";
 import type { FleetBootstrapPayload, FleetRuntimeSnapshot } from "@/types/realtime";
+import type { FleetAlert } from "@/types/alerts";
+import type { RestrictedZone, RestrictedZoneDraft } from "@/types/zones";
 
 import { SIMULATION_TICK_MS } from "@/server/simulation/constants";
 import { advanceFleetSnapshot, createInitialFleetSnapshot } from "@/server/simulation/engine";
@@ -19,6 +22,7 @@ class FleetRuntime {
   private snapshot: FleetRuntimeSnapshot = createInitialFleetSnapshot();
   private intervalHandle: NodeJS.Timeout | null = null;
   private sockets = new Map<WebSocket, string>();
+  private membershipByZoneId = new Map<string, Set<string>>();
 
   start() {
     if (this.intervalHandle) {
@@ -30,16 +34,16 @@ class FleetRuntime {
       const nextSnapshot = advanceFleetSnapshot(this.snapshot, this.sockets.size, 0);
       const tickDurationMs = Date.now() - tickStartedAt;
 
-      this.snapshot = {
+      this.commitSnapshot({
         ...nextSnapshot,
         telemetry: {
           ...nextSnapshot.telemetry,
           viewerCount: this.sockets.size,
           lastTickDurationMs: tickDurationMs,
         },
-      };
+      });
 
-      this.broadcast(createFleetSnapshotMessage(this.snapshot));
+      this.publishSnapshot();
     }, SIMULATION_TICK_MS);
   }
 
@@ -98,6 +102,100 @@ class FleetRuntime {
     });
   }
 
+  createZone(zoneDraft: RestrictedZoneDraft) {
+    const generatedAt = new Date().toISOString();
+    const zone: RestrictedZone = {
+      id: randomUUID(),
+      name: zoneDraft.name.trim() || `Restricted zone ${this.snapshot.zones.length + 1}`,
+      points: zoneDraft.points,
+      createdAt: generatedAt,
+      updatedAt: generatedAt,
+    };
+
+    this.commitSnapshot({
+      ...this.snapshot,
+      generatedAt,
+      sequence: this.snapshot.sequence + 1,
+      zones: [...this.snapshot.zones, zone],
+    });
+    this.publishSnapshot();
+
+    return zone;
+  }
+
+  updateZone(zoneId: string, zoneDraft: RestrictedZoneDraft) {
+    const existingZone = this.snapshot.zones.find((zone) => zone.id === zoneId);
+
+    if (!existingZone) {
+      return null;
+    }
+
+    const generatedAt = new Date().toISOString();
+    const updatedZone: RestrictedZone = {
+      ...existingZone,
+      name: zoneDraft.name.trim() || existingZone.name,
+      points: zoneDraft.points,
+      updatedAt: generatedAt,
+    };
+
+    this.commitSnapshot({
+      ...this.snapshot,
+      generatedAt,
+      sequence: this.snapshot.sequence + 1,
+      zones: this.snapshot.zones.map((zone) => (zone.id === zoneId ? updatedZone : zone)),
+    });
+    this.publishSnapshot();
+
+    return updatedZone;
+  }
+
+  removeZone(zoneId: string) {
+    if (!this.snapshot.zones.some((zone) => zone.id === zoneId)) {
+      return false;
+    }
+
+    const generatedAt = new Date().toISOString();
+
+    this.commitSnapshot({
+      ...this.snapshot,
+      generatedAt,
+      sequence: this.snapshot.sequence + 1,
+      zones: this.snapshot.zones.filter((zone) => zone.id !== zoneId),
+    });
+    this.publishSnapshot();
+
+    return true;
+  }
+
+  acknowledgeAlert(alertId: string) {
+    return this.updateAlert(alertId, (alert, generatedAt) => {
+      if (alert.state === "resolved" || alert.state === "acknowledged") {
+        return alert;
+      }
+
+      return {
+        ...alert,
+        state: "acknowledged",
+        acknowledgedAt: alert.acknowledgedAt ?? generatedAt,
+      };
+    });
+  }
+
+  resolveAlert(alertId: string) {
+    return this.updateAlert(alertId, (alert, generatedAt) => {
+      if (alert.state === "resolved") {
+        return alert;
+      }
+
+      return {
+        ...alert,
+        state: "resolved",
+        acknowledgedAt: alert.acknowledgedAt ?? generatedAt,
+        resolvedAt: generatedAt,
+      };
+    });
+  }
+
   private syncViewerCount() {
     this.snapshot = {
       ...this.snapshot,
@@ -106,6 +204,53 @@ class FleetRuntime {
         viewerCount: this.sockets.size,
       },
     };
+  }
+
+  private commitSnapshot(nextSnapshot: FleetRuntimeSnapshot) {
+    const evaluation = evaluateGeofenceState({
+      previousSnapshot: this.snapshot,
+      nextSnapshot,
+      previousMembershipByZoneId: this.membershipByZoneId,
+    });
+
+    this.snapshot = {
+      ...evaluation.nextSnapshot,
+      telemetry: {
+        ...evaluation.nextSnapshot.telemetry,
+        viewerCount: this.sockets.size,
+      },
+    };
+    this.membershipByZoneId = evaluation.membershipByZoneId;
+  }
+
+  private publishSnapshot() {
+    this.broadcast(createFleetSnapshotMessage(this.snapshot));
+  }
+
+  private updateAlert(
+    alertId: string,
+    updater: (alert: FleetAlert, generatedAt: string) => FleetAlert
+  ) {
+    const existingAlert = this.snapshot.alerts.find((alert) => alert.id === alertId);
+
+    if (!existingAlert) {
+      return null;
+    }
+
+    const generatedAt = new Date().toISOString();
+    const updatedAlerts = this.snapshot.alerts.map((alert) =>
+      alert.id === alertId ? updater(alert, generatedAt) : alert
+    );
+
+    this.commitSnapshot({
+      ...this.snapshot,
+      generatedAt,
+      sequence: this.snapshot.sequence + 1,
+      alerts: updatedAlerts,
+    });
+    this.publishSnapshot();
+
+    return this.snapshot.alerts.find((alert) => alert.id === alertId) ?? existingAlert;
   }
 
   private broadcast(message: ReturnType<typeof createFleetSnapshotMessage>) {

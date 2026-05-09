@@ -80,6 +80,13 @@ export function LiveSystemBar({
       classes: "border-line bg-white/70 text-foreground",
     },
     {
+      label: "Restrictions",
+      value: snapshot
+        ? `${snapshot.zones.length} zones / ${snapshot.alerts.filter((alert) => alert.state === "active").length} active alerts`
+        : "Awaiting runtime",
+      classes: "border-line bg-white/70 text-foreground",
+    },
+    {
       label: "Focus",
       value: highlightedShip
         ? `${highlightedShip.name} · ${highlightedShip.status}`
@@ -89,7 +96,7 @@ export function LiveSystemBar({
   ];
 
   return (
-    <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+    <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
       {cards.map((card) => (
         <div
           key={card.label}

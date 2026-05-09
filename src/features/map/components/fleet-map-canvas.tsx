@@ -15,13 +15,19 @@ import {
 
 import { getFleetScenarioSeed, getPortById } from "@/features/fleet/data/scenario-seed";
 import type { FleetDisplayShip } from "@/features/fleet/hooks/use-interpolated-fleet-view";
+import { RestrictedZoneControls } from "@/features/map/components/restricted-zone-controls";
 import type { GeoPoint } from "@/types/fleet";
+import type { RestrictedZone, RestrictedZoneDraft } from "@/types/zones";
 
 export type FleetMapCanvasProps = {
   role: "command" | "captain";
   ships: FleetDisplayShip[];
+  zones?: RestrictedZone[];
   selectedShipId: string | null;
   onSelectShip?: (shipId: string) => void;
+  onCreateZone?: (zone: RestrictedZoneDraft) => void | Promise<void>;
+  onUpdateZone?: (zoneId: string, zone: RestrictedZoneDraft) => void | Promise<void>;
+  onDeleteZone?: (zoneId: string) => void | Promise<void>;
   captainShipId?: string;
 };
 
@@ -121,8 +127,12 @@ function CaptainFollowController({ ship }: { ship: FleetDisplayShip | null }) {
 export function FleetMapCanvas({
   role,
   ships,
+  zones = [],
   selectedShipId,
   onSelectShip,
+  onCreateZone,
+  onUpdateZone,
+  onDeleteZone,
   captainShipId,
 }: FleetMapCanvasProps) {
   const selectedShip = ships.find((ship) => ship.shipId === selectedShipId) ?? null;
@@ -132,7 +142,7 @@ export function FleetMapCanvas({
   return (
     <MapContainer
       bounds={initialBounds}
-      className="fleet-map h-[26rem] w-full lg:h-[34rem]"
+      className="fleet-map h-104 w-full lg:h-136"
       scrollWheelZoom
       preferCanvas
     >
@@ -144,6 +154,14 @@ export function FleetMapCanvas({
       <Polygon
         positions={scenarioSeed.navigableWater.map(toLatLng)}
         pathOptions={{ color: "#0f766e", fillColor: "#d7ece8", fillOpacity: 0.24, weight: 2 }}
+      />
+
+      <RestrictedZoneControls
+        role={role}
+        zones={zones}
+        onCreateZone={onCreateZone}
+        onUpdateZone={onUpdateZone}
+        onDeleteZone={onDeleteZone}
       />
 
       {scenarioSeed.ports.map((port) => (

@@ -1,5 +1,8 @@
 "use client";
 
+import { AlertCenter } from "@/features/alerts/components/alert-center";
+import { useAlertAudio } from "@/features/alerts/hooks/use-alert-audio";
+import { useFleetCommandControls } from "@/features/command/hooks/use-fleet-command-controls";
 import { SectionCard } from "@/components/shell/section-card";
 import { FleetSelectionList } from "@/features/fleet/components/fleet-selection-list";
 import { LiveSystemBar } from "@/features/fleet/components/live-system-bar";
@@ -17,6 +20,19 @@ export function CommandLiveDashboard() {
     connectionState,
     error,
   } = useInterpolatedFleetView();
+  const {
+    createZone,
+    updateZone,
+    deleteZone,
+    acknowledgeAlert,
+    resolveAlert,
+    pendingAlertId,
+    error: controlError,
+  } = useFleetCommandControls();
+
+  useAlertAudio(snapshot?.alerts ?? []);
+
+  const errors = [error, controlError].filter(Boolean);
 
   return (
     <>
@@ -30,18 +46,37 @@ export function CommandLiveDashboard() {
       <div className="grid gap-6 xl:grid-cols-[1.45fr_0.85fr]">
         <SectionCard
           title="Fleet map"
-          description="The command surface now uses the live authoritative feed as its main interaction layer. Click any ship to inspect it."
+          description="The command surface uses the live authoritative feed as its main interaction layer. Draw, edit, or remove restricted zones directly on the map and click ships to inspect them."
         >
-          {error ? <p className="mb-4 text-sm leading-7 text-accent-strong">{error}</p> : null}
+          {errors.length > 0 ? (
+            <div className="mb-4 grid gap-2">
+              {errors.map((message) => (
+                <p key={message} className="text-sm leading-7 text-accent-strong">
+                  {message}
+                </p>
+              ))}
+            </div>
+          ) : null}
           <FleetMap
             role="command"
             ships={displayShips}
+            zones={snapshot?.zones ?? []}
             selectedShipId={selectedShipId}
             onSelectShip={setSelectedShipId}
+            onCreateZone={createZone}
+            onUpdateZone={updateZone}
+            onDeleteZone={deleteZone}
           />
         </SectionCard>
 
         <div className="grid gap-6">
+          <AlertCenter
+            alerts={snapshot?.alerts ?? []}
+            role="command"
+            pendingAlertId={pendingAlertId}
+            onAcknowledge={acknowledgeAlert}
+            onResolve={resolveAlert}
+          />
           <ShipDetailsCard ship={selectedShip} roleLabel="Command" />
           <FleetSelectionList
             ships={displayShips}
