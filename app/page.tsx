@@ -33,19 +33,19 @@ export default function Home() {
             <div className="flex flex-wrap gap-3">
               <Link
                 href="/overview"
-                className="rounded-full border border-accent-strong bg-accent-strong px-5 py-3 text-sm font-semibold text-white shadow-sm shadow-orange-900/10 transition-transform hover:-translate-y-0.5"
+                className="action-button-light rounded-full border border-accent-strong bg-accent-strong px-5 py-3 text-sm font-semibold shadow-sm shadow-orange-900/10 transition-transform hover:-translate-y-0.5"
               >
                 Open system overview
               </Link>
               <Link
                 href={roleDefinitions.command.href}
-                className="rounded-full border border-accent bg-accent px-5 py-3 text-sm font-semibold text-white shadow-sm shadow-accent/20 transition-transform hover:-translate-y-0.5"
+                className="action-button-light rounded-full border border-accent bg-accent px-5 py-3 text-sm font-semibold shadow-sm shadow-accent/20 transition-transform hover:-translate-y-0.5"
               >
                 Open command center
               </Link>
               <Link
                 href={roleDefinitions.captain.href}
-                className="rounded-full border border-foreground bg-foreground px-5 py-3 text-sm font-semibold text-white shadow-sm shadow-slate-900/10 transition-transform hover:-translate-y-0.5"
+                className="action-button-light rounded-full border border-foreground bg-foreground px-5 py-3 text-sm font-semibold shadow-sm shadow-slate-900/10 transition-transform hover:-translate-y-0.5"
               >
                 Open captain console
               </Link>

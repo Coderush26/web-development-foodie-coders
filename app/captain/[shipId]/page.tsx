@@ -28,19 +28,19 @@ export default async function CaptainPage({ params }: CaptainPageProps) {
         <div className="flex flex-wrap gap-3">
           <Link
             href="/command"
-            className="rounded-full border border-accent bg-accent px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-accent/20"
+            className="action-button-light rounded-full border border-accent bg-accent px-4 py-2 text-sm font-semibold shadow-sm shadow-accent/20"
           >
             Open command center
           </Link>
           <Link
             href="/overview"
-            className="rounded-full border border-accent-strong bg-accent-strong px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-orange-900/10"
+            className="action-button-light rounded-full border border-accent-strong bg-accent-strong px-4 py-2 text-sm font-semibold shadow-sm shadow-orange-900/10"
           >
             Open system overview
           </Link>
           <Link
             href="/"
-            className="rounded-full border border-foreground bg-foreground px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-slate-900/10"
+            className="action-button-light rounded-full border border-foreground bg-foreground px-4 py-2 text-sm font-semibold shadow-sm shadow-slate-900/10"
           >
             Open access portal
           </Link>

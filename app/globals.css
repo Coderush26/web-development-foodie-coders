@@ -54,6 +54,14 @@ a {
   text-decoration: none;
 }
 
+.action-button-light,
+.action-button-light:visited,
+.action-button-light:hover,
+.action-button-light:active,
+.action-button-light:focus {
+  color: #ffffff !important;
+}
+
 ::selection {
   background: rgba(15, 118, 110, 0.18);
 }

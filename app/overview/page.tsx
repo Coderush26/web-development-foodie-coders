@@ -40,19 +40,19 @@ export default function OverviewPage() {
         <div className="flex flex-wrap gap-3">
           <Link
             href="/"
-            className="rounded-full border border-foreground bg-foreground px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-slate-900/10"
+            className="action-button-light rounded-full border border-foreground bg-foreground px-4 py-2 text-sm font-semibold shadow-sm shadow-slate-900/10"
           >
             Open access portal
           </Link>
           <Link
             href={roleDefinitions.command.href}
-            className="rounded-full border border-accent bg-accent px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-accent/20"
+            className="action-button-light rounded-full border border-accent bg-accent px-4 py-2 text-sm font-semibold shadow-sm shadow-accent/20"
           >
             Open command center
           </Link>
           <Link
             href={roleDefinitions.captain.href}
-            className="rounded-full border border-accent-strong bg-accent-strong px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-orange-900/10"
+            className="action-button-light rounded-full border border-accent-strong bg-accent-strong px-4 py-2 text-sm font-semibold shadow-sm shadow-orange-900/10"
           >
             Open captain console
           </Link>

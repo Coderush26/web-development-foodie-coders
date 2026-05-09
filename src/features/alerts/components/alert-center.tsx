@@ -129,7 +129,7 @@ export function AlertCenter({
                       type="button"
                       onClick={() => onAcknowledge?.(alert.id)}
                       disabled={alert.state !== "active" || isPending}
-                      className="rounded-full border border-accent bg-accent px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white shadow-sm shadow-accent/20 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="action-button-light rounded-full border border-accent bg-accent px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] shadow-sm shadow-accent/20 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {isPending && alert.state === "active" ? "Working..." : "Acknowledge"}
                     </button>
@@ -137,7 +137,7 @@ export function AlertCenter({
                       type="button"
                       onClick={() => onResolve?.(alert.id)}
                       disabled={alert.state === "resolved" || isPending}
-                      className="rounded-full border border-accent-strong bg-accent-strong px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white shadow-sm shadow-orange-900/10 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="action-button-light rounded-full border border-accent-strong bg-accent-strong px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] shadow-sm shadow-orange-900/10 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {isPending && alert.state !== "active" ? "Working..." : "Resolve"}
                     </button>
