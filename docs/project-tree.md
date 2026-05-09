@@ -16,3 +16,6 @@
 - `docs/project-tree/docs.md`
 
 ## Quick-Find Guide
+
+- `server.ts`: custom Node server that owns HTTP requests and WebSocket upgrades.
+- `.env.example`: current runtime and optional external-service environment keys.

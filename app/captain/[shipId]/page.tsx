@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { AppShell } from "@/components/shell/app-shell";
 import { SectionCard } from "@/components/shell/section-card";
+import { LiveFleetPanel } from "@/features/fleet/components/live-fleet-panel";
 import {
   getPortById,
   getShipById,
@@ -28,9 +29,9 @@ export default async function CaptainPage({ params }: CaptainPageProps) {
 
   return (
     <AppShell
-      eyebrow="Phase 1 / Captain"
+      eyebrow="Phase 2 / Captain"
       title={`${ship.name} bridge console`}
-      description="The captain route is already ship-scoped. Later phases will add directive handling, distress escalation, and live route awareness without changing the page contract."
+      description="This route remains ship-scoped, but it now subscribes to the live fleet runtime so the bridge sees authoritative movement, fuel burn, and arrival progress in real time."
       actions={
         <div className="flex flex-wrap gap-3">
           <Link
@@ -48,10 +49,16 @@ export default async function CaptainPage({ params }: CaptainPageProps) {
         </div>
       }
     >
+      <LiveFleetPanel
+        shipId={ship.shipId}
+        title="Live ship runtime"
+        description="The bridge console uses the same authoritative simulation feed as Command, narrowed to the assigned vessel so later captain workflows can build on stable realtime state."
+      />
+
       <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
         <SectionCard
           title="Assigned vessel"
-          description="This page is already keyed by ship ID and pulls shared seed data through the domain layer."
+          description="This page stays keyed by ship ID and now pairs the seed-backed identity with live runtime state."
         >
           <dl className="grid gap-4 sm:grid-cols-2">
             <div>
@@ -87,10 +94,10 @@ export default async function CaptainPage({ params }: CaptainPageProps) {
 
         <SectionCard
           title="Captain roadmap"
-          description="Phase 1 only establishes context; interaction is added later."
+          description="Phase 2 gives captains live awareness. The interactive workflows still arrive later."
         >
           <ul className="space-y-3 text-sm leading-7 text-muted">
-            <li>Phase 3 adds a ship-scoped live map and shared situational context.</li>
+            <li>Phase 3 adds a ship-scoped live map and richer shared situational context.</li>
             <li>Phase 5 adds directive inbox, accept flow, and distress escalation.</li>
             <li>Phase 6 adds route, fuel feasibility, weather, and proximity awareness.</li>
           </ul>

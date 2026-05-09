@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
 import { SectionCard } from "@/components/shell/section-card";
 import { phaseOneWorkstreams } from "@/config/scenario";
+import { LiveFleetPanel } from "@/features/fleet/components/live-fleet-panel";
 import {
   getFleetOverview,
   getFleetScenarioSeed,
@@ -15,9 +16,9 @@ export default function CommandPage() {
 
   return (
     <AppShell
-      eyebrow="Phase 1 / Command"
+      eyebrow="Phase 2 / Command"
       title="Fleet command shell"
-      description="This is the operator-facing foundation for the control room. It is intentionally static in Phase 1, but it already knows the real scenario, real ships, and the boundaries of later features."
+      description="This route now sits on top of the authoritative simulation runtime. Command can read live fleet state immediately while later phases add map tooling, alerts, and directive workflows."
       actions={
         <div className="flex flex-wrap gap-3">
           <Link
@@ -35,10 +36,15 @@ export default function CommandPage() {
         </div>
       }
     >
+      <LiveFleetPanel
+        title="Live fleet runtime"
+        description="Phase 2 streams authoritative server snapshots through a bootstrap endpoint plus WebSocket channel, so this screen now reflects the real in-memory simulation rather than only the static seed."
+      />
+
       <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <SectionCard
           title="Scenario control baseline"
-          description="The command route is already wired to the fleet seed and grading targets."
+          description="The route still uses the shared scenario seed, but Phase 2 now layers live runtime telemetry on top of it."
         >
           <dl className="grid gap-4 sm:grid-cols-2">
             <div>
@@ -59,7 +65,7 @@ export default function CommandPage() {
             <div>
               <dt className="text-sm text-muted">Phase scope</dt>
               <dd className="mt-1 text-sm leading-7 text-muted">
-                Layout, shared domain, route shells, and scenario loading only.
+                Realtime simulation tick, bootstrap delivery, and live command visibility.
               </dd>
             </div>
           </dl>
@@ -67,10 +73,9 @@ export default function CommandPage() {
 
         <SectionCard
           title="What comes next"
-          description="Command-specific behavior is intentionally deferred into later phases."
+          description="Phase 2 covers the data backbone. Interaction layers still land in later phases."
         >
           <ul className="space-y-3 text-sm leading-7 text-muted">
-            <li>Phase 2: authoritative simulation tick and WebSocket delivery.</li>
             <li>Phase 3: live fleet map, interpolation, and ship detail inspection.</li>
             <li>Phase 4: zone drawing, geofence detection, and alert acknowledgement.</li>
             <li>Phase 5 onward: directives, captain responses, routing, weather, and playback.</li>
