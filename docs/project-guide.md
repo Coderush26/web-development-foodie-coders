@@ -22,6 +22,7 @@ The system also includes:
 - captain directive responses
 - distress-message extraction
 - playback review
+- optional protected-mode authentication with member invites, email verification, password reset, and a super-admin access console
 
 ## Main Pages
 
@@ -53,6 +54,13 @@ Why this page exists:
 - Command and Captain are still the two operational roles that matter most
 - the detailed overview now lives on its own page instead of filling the home route
 
+When protected mode is enabled on this page:
+
+- the authentication toggle can switch this browser into protected mode
+- signed-in members see only the routes that match their role
+- super admins get a direct link to the admin console
+- captains get a direct link only to their assigned ship route
+
 ### `/overview`
 
 Purpose:
@@ -70,6 +78,77 @@ Main buttons on this page:
 - `Open access portal`: returns to `/`
 - `Open command center`: opens `/command`
 - `Open captain console`: opens `/captain/MV-1`
+
+### `/admin`
+
+Purpose:
+This is the super-admin control surface for protected mode.
+
+What you can do here:
+
+- invite a new member
+- assign the member role as super admin, command, or captain
+- assign a captain to a ship before the first sign-in
+- disable or reactivate a member
+- resend an invitation link when onboarding was not completed
+- open the command dashboard, change the admin password, or sign out
+
+Main sections on this page:
+
+- `Protected-mode owner`: shows the current signed-in admin, success or error feedback, and local preview links for generated invites
+- `Invite member`: creates a new member record and generates the invite link
+- `Member directory`: updates role access, captain ship assignment, disable or reactivate state, and invite resend actions
+- `Audit trail`: shows recent sign-in, sign-out, directive, alert, and restricted-zone actions so the owner can review live operational changes
+
+### `/auth/login`
+
+Purpose:
+This is the shared sign-in page for protected mode.
+
+What you can do here:
+
+- sign in as the bootstrap super admin or any invited member who already completed email verification
+- follow the forgot-password path
+- open the change-password page when already signed in
+
+Important behavior:
+
+- successful sign-in redirects to the correct route for the member role
+- captains are redirected only to their assigned ship route
+- unverified or disabled accounts are blocked from signing in
+- successful sign-in and sign-out are recorded in the audit trail when the database is configured
+
+### `/auth/invite`
+
+Purpose:
+This page accepts the one-time invitation link.
+
+What you can do here:
+
+- confirm the invited account
+- set the first password
+- continue into the email verification flow
+
+### `/auth/verify-email`
+
+Purpose:
+This page completes email verification after invite acceptance.
+
+What you can do here:
+
+- open the local preview verification link in laptop-safe runs
+- submit the verification token and activate the account for sign-in
+
+### `/auth/forgot-password`, `/auth/reset-password`, and `/auth/change-password`
+
+Purpose:
+These pages complete the Phase 2 password lifecycle.
+
+What you can do here:
+
+- request a reset link for a verified account
+- set a new password from the one-time reset link
+- change the current password while already signed in
 
 ### `/command`
 

@@ -265,9 +265,13 @@ export function applyAcceptedDirectivesToSnapshot(
     return snapshot;
   }
 
-  const directivesByShipId = new Map(
-    pendingAcceptedDirectives.map((directive) => [directive.shipId, directive] as const)
-  );
+  const directivesByShipId = new Map<string, FleetDirective>();
+
+  for (const directive of pendingAcceptedDirectives) {
+    if (!directivesByShipId.has(directive.shipId)) {
+      directivesByShipId.set(directive.shipId, directive);
+    }
+  }
 
   return {
     ...snapshot,

@@ -13,6 +13,7 @@ type AuthModeToggleCardProps = {
   currentSession: {
     fullName: string;
     roles: string[];
+    captainShipIds: string[];
   } | null;
 };
 
@@ -114,11 +115,42 @@ export function AuthModeToggleCard({
               </p>
               <p className="mt-1 text-sm text-muted">Roles: {currentSession.roles.join(", ")}</p>
               <div className="mt-3 flex flex-wrap gap-3">
+                {currentSession.roles.includes("super_admin") ? (
+                  <Link
+                    href="/admin"
+                    className="action-button-light rounded-full border border-accent-strong bg-accent-strong px-4 py-2 text-sm font-semibold shadow-sm shadow-orange-900/10"
+                  >
+                    Open admin console
+                  </Link>
+                ) : null}
+                {currentSession.roles.includes("command") ||
+                currentSession.roles.includes("super_admin") ? (
+                  <Link
+                    href="/command"
+                    className="action-button-light rounded-full border border-accent bg-accent px-4 py-2 text-sm font-semibold shadow-sm shadow-accent/20"
+                  >
+                    Open protected command
+                  </Link>
+                ) : null}
+                {currentSession.roles.includes("captain") && currentSession.captainShipIds[0] ? (
+                  <Link
+                    href={`/captain/${currentSession.captainShipIds[0]}`}
+                    className="action-button-light rounded-full border border-foreground bg-foreground px-4 py-2 text-sm font-semibold shadow-sm shadow-slate-900/10"
+                  >
+                    Open assigned captain view
+                  </Link>
+                ) : null}
                 <Link
-                  href="/command"
-                  className="action-button-light rounded-full border border-accent bg-accent px-4 py-2 text-sm font-semibold shadow-sm shadow-accent/20"
+                  href="/auth/change-password"
+                  className="rounded-full border border-line bg-white px-4 py-2 text-sm font-semibold text-foreground shadow-sm shadow-slate-900/5"
                 >
-                  Open protected command
+                  Change password
+                </Link>
+                <Link
+                  href="/auth/login"
+                  className="rounded-full border border-line bg-white px-4 py-2 text-sm font-semibold text-foreground shadow-sm shadow-slate-900/5"
+                >
+                  Open sign-in page
                 </Link>
                 <form action="/api/auth/logout" method="post">
                   <button

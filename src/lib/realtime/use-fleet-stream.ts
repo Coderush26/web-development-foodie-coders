@@ -11,9 +11,25 @@ import type { FleetRuntimeSnapshot } from "@/types/realtime";
 
 type FleetConnectionState = "loading" | "connecting" | "open" | "closed" | "error";
 
-function buildSocketUrl(socketPath: string) {
+function buildBootstrapUrl(shipId?: string) {
+  const url = new URL(FLEET_BOOTSTRAP_PATH, window.location.origin);
+
+  if (shipId) {
+    url.searchParams.set("shipId", shipId);
+  }
+
+  return url.toString();
+}
+
+function buildSocketUrl(socketPath: string, shipId?: string) {
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  return `${protocol}//${window.location.host}${socketPath}`;
+  const url = new URL(`${protocol}//${window.location.host}${socketPath}`);
+
+  if (shipId) {
+    url.searchParams.set("shipId", shipId);
+  }
+
+  return url.toString();
 }
 
 export function useFleetStream(shipId?: string) {
@@ -40,7 +56,7 @@ export function useFleetStream(shipId?: string) {
       socketPathRef.current = socketPath;
       setConnectionState("connecting");
 
-      const socket = new WebSocket(buildSocketUrl(socketPath));
+      const socket = new WebSocket(buildSocketUrl(socketPath, shipId));
       socketRef.current = socket;
 
       socket.addEventListener("open", () => {
@@ -107,7 +123,7 @@ export function useFleetStream(shipId?: string) {
 
     async function bootstrap() {
       try {
-        const response = await fetch(FLEET_BOOTSTRAP_PATH, { cache: "no-store" });
+        const response = await fetch(buildBootstrapUrl(shipId), { cache: "no-store" });
 
         if (!response.ok) {
           throw new Error(`Bootstrap request failed with ${response.status}`);
@@ -159,7 +175,7 @@ export function useFleetStream(shipId?: string) {
       socketRef.current?.close();
       socketRef.current = null;
     };
-  }, []);
+  }, [shipId]);
 
   const ship =
     shipId && snapshot ? (snapshot.ships.find((item) => item.shipId === shipId) ?? null) : null;

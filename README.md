@@ -2,7 +2,7 @@
 
 Fleet Crisis Ops is a laptop-runnable realtime shipping-crisis simulator for the Strait of Hormuz scenario. It runs a server-owned fleet simulation, streams live ship state over WebSocket, and renders separate Command and Captain map dashboards from the same authoritative runtime.
 
-It now also includes an opt-in Phase 1 protected mode. By default, the app still runs exactly as the original no-auth simulator. From the home page, you can switch the current browser into `Authentication enabled` mode to test the new DB-backed route protection without affecting the default open-access demo flow.
+It now also includes an opt-in Phase 2 protected mode. By default, the app still runs exactly as the original no-auth simulator. From the home page, you can switch the current browser into `Authentication enabled` mode to test the new DB-backed access layer without affecting the default open-access demo flow.
 
 The current build includes:
 
@@ -16,6 +16,7 @@ The current build includes:
 - route planning with zone avoidance, weather-aware cost scoring, and stranded or insufficient-fuel alerts
 - one-hour playback review with a 30-second history buffer and historical event stream
 - command-side runtime diagnostics for tick cadence, playback depth, weather fallback, and distress-provider mode
+- optional protected-mode auth with super-admin member management, invite acceptance, email verification, password reset, and change-password flows
 
 ## Quick Start
 
@@ -63,8 +64,10 @@ The currently recognized runtime variables are:
 - `AI_PROVIDER=local` keeps distress extraction on the deterministic no-key fallback parser
 - `OPENAI_API_KEY`, `OPENAI_BASE_URL`, and `OPENAI_MODEL` are optional if you want real-model distress extraction instead of the local parser
 - `WEATHER_PROVIDER=open-meteo` uses live Open-Meteo weather first and automatically falls back to deterministic synthetic weather if the provider is slow or unavailable
-- `DATABASE_URL` is optional unless you want to use the new protected-mode Phase 1 auth flow
+- `DATABASE_URL` is optional unless you want to use the new protected-mode auth flow
 - `AUTH_BOOTSTRAP_ADMIN_EMAIL`, `AUTH_BOOTSTRAP_ADMIN_PASSWORD`, and `AUTH_BOOTSTRAP_ADMIN_NAME` define the local bootstrap super-admin account for protected mode
+- `APP_BASE_URL` defines the base URL used in invite, verification, and password-reset links
+- `EMAIL_PROVIDER=console` keeps invite, verify, and reset flows laptop-safe by logging the action links and surfacing local preview URLs in the UI
 
 The default example `DATABASE_URL` now uses `localhost:5433` so it does not collide with an existing local Postgres already bound to `5432`.
 
@@ -78,14 +81,20 @@ The home page now includes an `Authentication toggle` card.
 - `Authentication enabled` turns on route and API protection for the current browser only.
 - when protected mode is enabled, `/command` and `/captain/[shipId]` redirect to `/auth/login` until a valid session exists
 
-Phase 1 currently provides:
+Protected mode currently provides:
 
 - Drizzle schema and Postgres-backed auth foundation
 - bootstrap super-admin creation
 - DB-backed session cookies
-- protected route proxy for Command and Captain pages
+- protected route proxy for Admin, Command, and Captain pages
+- protected `/admin` member-management console
+- invite-based member onboarding with local preview links
+- email verification flow
+- forgot-password, reset-password, and change-password flows
+- role-aware navigation and post-login redirects
 - protected API guards for fleet bootstrap, control, playback, and diagnostics
-- WebSocket auth checks on Node hosts
+- captain ship assignment UI and captain-route enforcement
+- scoped bootstrap and WebSocket access on Node hosts so captain sessions only receive their assigned ship feed plus limited nearby context
 
 The bootstrap admin defaults are:
 
@@ -103,7 +112,7 @@ Change them through environment variables before sharing the protected mode with
 ## Assumptions
 
 - Fuel burn is deterministic simulation math, not nautical-grade routing software.
-- Captain access is route-scoped demo access, not full authentication.
+- Protected mode is optional. When it is disabled, the original open-access challenge flow still runs exactly as before.
 - The authoritative fleet runtime and playback buffer are in-memory only, so both reset on process restart.
 - Playback stores the last hour at 30-second resolution and does not reconstruct every sub-second intermediate state.
 - Browser audio alerts still depend on prior user interaction because of autoplay restrictions.

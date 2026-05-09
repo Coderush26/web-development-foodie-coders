@@ -139,6 +139,57 @@ test("accepted hold-position directives stop the ship on the next tick", () => {
   assert.equal(advancedShip.status, "stopped");
 });
 
+test("the latest accepted directive wins when multiple accepted directives exist for one ship", () => {
+  const scenarioSeed = getFleetScenarioSeed();
+  const initialSnapshot = createInitialFleetSnapshot();
+  const ship = initialSnapshot.ships[0];
+  const firstTargetPort = scenarioSeed.ports.find((port) => port.id !== ship.destinationPortId);
+  const secondTargetPort = scenarioSeed.ports.find(
+    (port) => port.id !== ship.destinationPortId && port.id !== firstTargetPort?.id
+  );
+
+  assert.ok(firstTargetPort, "Expected a first alternate target port.");
+  assert.ok(secondTargetPort, "Expected a second alternate target port.");
+
+  const firstIssuedSnapshot = issueDirective(initialSnapshot, {
+    shipId: ship.shipId,
+    type: "reroute-port",
+    targetPortId: firstTargetPort.id,
+    note: "First reroute order.",
+  });
+
+  assert.ok(firstIssuedSnapshot, "Expected the first directive issuance to succeed.");
+
+  const secondIssuedSnapshot = issueDirective(firstIssuedSnapshot, {
+    shipId: ship.shipId,
+    type: "reroute-port",
+    targetPortId: secondTargetPort.id,
+    note: "Latest reroute order.",
+  });
+
+  assert.ok(secondIssuedSnapshot, "Expected the second directive issuance to succeed.");
+
+  const latestDirective = secondIssuedSnapshot.directives[0];
+  const olderDirective = secondIssuedSnapshot.directives[1];
+  const acceptedLatestSnapshot = acceptDirective(secondIssuedSnapshot, latestDirective.id);
+
+  assert.ok(acceptedLatestSnapshot, "Expected the latest directive acceptance to succeed.");
+
+  const acceptedBothSnapshot = acceptDirective(acceptedLatestSnapshot, olderDirective.id);
+
+  assert.ok(acceptedBothSnapshot, "Expected the older directive acceptance to succeed.");
+
+  const appliedSnapshot = applyAcceptedDirectivesToSnapshot(
+    acceptedBothSnapshot,
+    "2026-05-09T10:04:00.000Z"
+  );
+  const appliedShip = getShip(appliedSnapshot, ship.shipId);
+
+  assert.equal(appliedShip.destinationPortId, secondTargetPort.id);
+  assert.equal(appliedShip.intent.type, "destination-port");
+  assert.equal(appliedShip.intent.portId, secondTargetPort.id);
+});
+
 test("distress escalation uses the fallback parser and creates a structured distress alert", async () => {
   const initialSnapshot = createInitialFleetSnapshot();
   const ship = initialSnapshot.ships[0];

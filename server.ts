@@ -4,6 +4,7 @@ import { getRequestHandlers } from "next/dist/server/lib/start-server";
 import { WebSocketServer } from "ws";
 
 import { AUTH_SESSION_COOKIE, authModeValues } from "./src/config/auth";
+import { canAccessCaptainShip } from "./src/server/auth/access";
 import { isFleetSocketPath } from "./src/lib/realtime/messages";
 import { parseCookieHeader, resolveAuthModeFromCookieHeader } from "./src/server/auth/request";
 import { getSessionIdentity } from "./src/server/auth/session";
@@ -35,6 +36,7 @@ async function main() {
   });
 
   const runtime = getFleetRuntime();
+  await runtime.ensureReady();
   runtime.start();
 
   const socketServer = new WebSocketServer({ noServer: true });
@@ -50,20 +52,30 @@ async function main() {
   server.on("upgrade", async (request, socket, head) => {
     if (isFleetSocketPath(request.url)) {
       const authMode = resolveAuthModeFromCookieHeader(request.headers.cookie);
+      const requestedShipId = request.url
+        ? new URL(request.url, `http://${formattedOriginHost}:${port}`).searchParams.get("shipId")
+        : null;
+      let session = null;
 
       if (authMode === authModeValues.enabled) {
         const sessionToken = parseCookieHeader(request.headers.cookie)[AUTH_SESSION_COOKIE];
-        const session = await getSessionIdentity(sessionToken);
+        session = await getSessionIdentity(sessionToken);
 
         if (!session) {
           socket.write("HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n");
           socket.destroy();
           return;
         }
+
+        if (requestedShipId && !canAccessCaptainShip(session, requestedShipId)) {
+          socket.write("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
+          socket.destroy();
+          return;
+        }
       }
 
       socketServer.handleUpgrade(request, socket, head, (webSocket) => {
-        socketServer.emit("connection", webSocket, request);
+        runtime.attachClient(webSocket, { session, requestedShipId });
       });
 
       return;

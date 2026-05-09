@@ -7,6 +7,7 @@ import {
   authModeValues,
   resolveAuthMode,
 } from "@/config/auth";
+import { canAccessCaptainShip } from "@/server/auth/access";
 import type { AuthRole } from "@/server/auth/session";
 import { getSessionIdentity } from "@/server/auth/session";
 
@@ -43,7 +44,7 @@ export type RequestAccessResult = {
 
 export async function resolveRequestAccess(
   request: Request,
-  options?: { allowedRoles?: readonly AuthRole[] }
+  options?: { allowedRoles?: readonly AuthRole[]; requiredCaptainShipId?: string }
 ): Promise<RequestAccessResult> {
   const cookieHeader = request.headers.get("cookie");
   const authMode = resolveAuthModeFromCookieHeader(cookieHeader);
@@ -88,6 +89,20 @@ export async function resolveRequestAccess(
         ),
       };
     }
+  }
+
+  if (
+    options?.requiredCaptainShipId &&
+    !canAccessCaptainShip(session, options.requiredCaptainShipId)
+  ) {
+    return {
+      authMode,
+      session,
+      response: NextResponse.json(
+        { message: "You do not have access to this ship route." },
+        { status: 403 }
+      ),
+    };
   }
 
   return { authMode, session };

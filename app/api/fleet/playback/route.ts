@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
   }
 
   const fleetRuntime = getFleetRuntime();
+  await fleetRuntime.ensureReady();
   fleetRuntime.start();
 
   return NextResponse.json(fleetRuntime.getPlaybackHistory(), {

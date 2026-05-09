@@ -3,31 +3,52 @@ import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
 import { SectionCard } from "@/components/shell/section-card";
 import { isAuthDatabaseConfigured } from "@/server/auth/db";
+import { redirectSignedInUser } from "@/server/auth/current";
 
 type LoginPageProps = {
   searchParams: Promise<{
     next?: string;
     error?: string;
+    verified?: string;
+    reset?: string;
+    changed?: string;
   }>;
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const { next, error } = await searchParams;
+  const { next, error, verified, reset, changed } = await searchParams;
+
+  await redirectSignedInUser(next ?? null);
+
   const databaseConfigured = isAuthDatabaseConfigured();
   const errorMessage =
     error === "missing-fields"
       ? "Enter both email and password."
       : error === "invalid-credentials"
-        ? "That email or password did not match the bootstrap admin account."
-        : error === "unavailable"
-          ? "Protected mode is on, but the auth database is not ready yet."
+        ? "That email or password did not match an active member account."
+        : error === "invite-pending"
+          ? "This account still needs to accept its invitation before it can sign in."
+          : error === "email-unverified"
+            ? "This account still needs email verification before it can sign in."
+            : error === "account-disabled"
+              ? "This account is disabled. Ask a super admin to reactivate it."
+              : error === "unavailable"
+                ? "Protected mode is on, but the auth database is not ready yet."
+                : null;
+  const statusMessage =
+    verified === "1"
+      ? "Email verified. You can sign in now."
+      : reset === "1"
+        ? "Password reset complete. Sign in with the new password."
+        : changed === "1"
+          ? "Password changed successfully."
           : null;
 
   return (
     <AppShell
       eyebrow="Authentication v2"
       title="Protected mode entry"
-      description="Phase 1 adds DB-backed protected mode while keeping the existing open-access simulation untouched whenever auth mode is turned off."
+      description="Phase 2 keeps the optional protected-mode foundation, then adds invite-based members, email verification, password recovery, and role-aware redirects after sign-in."
       actions={
         <div className="flex flex-wrap gap-3">
           <Link
@@ -40,10 +61,16 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       }
     >
       <SectionCard
-        title="Phase 1 foundation"
-        description="Protected mode now has a bootstrap admin sign-in, optional Postgres backing, and session cookies that only matter when auth mode is enabled."
+        title="Protected mode sign in"
+        description="Super admins, command members, and captains now share the same sign-in screen. Invite-based users finish setup through their own email links first."
       >
         <div className="grid gap-4">
+          {statusMessage ? (
+            <p className="rounded-2xl border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-800">
+              {statusMessage}
+            </p>
+          ) : null}
+
           {errorMessage ? (
             <p className="rounded-2xl border border-accent-strong/20 bg-orange-50/80 px-4 py-3 text-sm text-accent-strong">
               {errorMessage}
@@ -85,6 +112,15 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </button>
           </form>
 
+          <div className="flex flex-wrap gap-3 text-sm">
+            <Link href="/auth/forgot-password" className="font-semibold text-accent underline">
+              Forgot password?
+            </Link>
+            <Link href="/auth/change-password" className="font-semibold text-accent underline">
+              Change password
+            </Link>
+          </div>
+
           <div className="grid gap-2 text-sm leading-7 text-muted">
             <p>
               Requested route: <span className="font-mono text-accent">{next ?? "/command"}</span>
@@ -92,7 +128,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             <p>
               Bootstrap admin defaults:{" "}
               <span className="font-mono text-accent">admin@fleet.local</span> and{" "}
-              <span className="font-mono text-accent">ChangeMe123!</span>.
+              <span className="font-mono text-accent">ChangeMe123!</span>. New invited members use
+              their own invite links instead of these defaults.
             </p>
             <p>
               Override them with AUTH_BOOTSTRAP_ADMIN_EMAIL, AUTH_BOOTSTRAP_ADMIN_PASSWORD, and

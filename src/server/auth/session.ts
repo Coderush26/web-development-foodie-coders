@@ -1,5 +1,6 @@
 import { and, eq, gt } from "drizzle-orm";
 
+import { authUserStatusValues } from "@/server/auth/constants";
 import { getAuthDb } from "@/server/auth/db";
 import { ensureAuthFoundation } from "@/server/auth/foundation";
 import {
@@ -26,6 +27,17 @@ export type AuthSessionIdentity = {
   captainShipIds: string[];
 };
 
+export type CreateSessionResult =
+  | {
+      ok: true;
+      token: string;
+      identity: AuthSessionIdentity;
+    }
+  | {
+      ok: false;
+      reason: "invalid-credentials" | "invite-pending" | "email-unverified" | "account-disabled";
+    };
+
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 
 async function loadIdentity(userId: string): Promise<AuthSessionIdentity | null> {
@@ -36,12 +48,17 @@ async function loadIdentity(userId: string): Promise<AuthSessionIdentity | null>
   }
 
   const [user] = await db
-    .select({ id: users.id, email: users.email, status: users.status })
+    .select({
+      id: users.id,
+      email: users.email,
+      status: users.status,
+      emailVerifiedAt: users.emailVerifiedAt,
+    })
     .from(users)
     .where(eq(users.id, userId))
     .limit(1);
 
-  if (!user || user.status !== "active") {
+  if (!user || user.status !== authUserStatusValues.active || !user.emailVerifiedAt) {
     return null;
   }
 
@@ -74,7 +91,7 @@ export async function createSessionForCredentials(input: {
   email: string;
   password: string;
   userAgent?: string | null;
-}) {
+}): Promise<CreateSessionResult> {
   await ensureAuthFoundation();
 
   const db = getAuthDb();
@@ -90,13 +107,26 @@ export async function createSessionForCredentials(input: {
       email: users.email,
       passwordHash: users.passwordHash,
       status: users.status,
+      emailVerifiedAt: users.emailVerifiedAt,
     })
     .from(users)
     .where(eq(users.email, normalizedEmail))
     .limit(1);
 
-  if (!user || user.status !== "active" || !verifyPassword(input.password, user.passwordHash)) {
-    return null;
+  if (!user || !verifyPassword(input.password, user.passwordHash)) {
+    return { ok: false, reason: "invalid-credentials" };
+  }
+
+  if (user.status === authUserStatusValues.disabled) {
+    return { ok: false, reason: "account-disabled" };
+  }
+
+  if (user.status !== authUserStatusValues.active) {
+    return { ok: false, reason: "invite-pending" };
+  }
+
+  if (!user.emailVerifiedAt) {
+    return { ok: false, reason: "email-unverified" };
   }
 
   const token = createOpaqueToken();
@@ -111,10 +141,10 @@ export async function createSessionForCredentials(input: {
   const identity = await loadIdentity(user.id);
 
   if (!identity) {
-    return null;
+    return { ok: false, reason: "invalid-credentials" };
   }
 
-  return { token, identity };
+  return { ok: true, token, identity };
 }
 
 export async function getSessionIdentity(sessionToken: string | undefined | null) {

@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+import { canAccessCaptainShip } from "@/server/auth/access";
 import { resolveRequestAccess } from "@/server/auth/request";
 import { extractDistressAssessment } from "@/server/directives/distress-extractor";
+import { writeOperationalAuditLog } from "@/server/operations/audit";
 import { getFleetRuntime } from "@/server/simulation/runtime";
 import type { FleetControlCommand } from "@/types/control";
 import type { DirectiveType } from "@/types/directives";
@@ -149,6 +151,13 @@ function resolveAllowedRolesForCommand(command: FleetControlCommand) {
   return ["super_admin", "captain"] as const;
 }
 
+function resolveDirectiveShipId(
+  snapshot: ReturnType<ReturnType<typeof getFleetRuntime>["getSnapshot"]>,
+  directiveId: string
+) {
+  return snapshot.directives.find((directive) => directive.id === directiveId)?.shipId ?? null;
+}
+
 export async function POST(request: NextRequest) {
   const value = (await request.json().catch(() => null)) as unknown;
   const command = parseCommand(value);
@@ -166,10 +175,29 @@ export async function POST(request: NextRequest) {
   }
 
   const fleetRuntime = getFleetRuntime();
+  await fleetRuntime.ensureReady();
   fleetRuntime.start();
+  let auditTargetId: string | null = null;
+
+  if (
+    access.authMode === "enabled" &&
+    access.session &&
+    access.session.roles.includes("captain") &&
+    !access.session.roles.includes("super_admin") &&
+    (command.type === "directive.accept" || command.type === "directive.escalate-distress")
+  ) {
+    const directiveShipId = resolveDirectiveShipId(fleetRuntime.getSnapshot(), command.directiveId);
+
+    if (!directiveShipId || !canAccessCaptainShip(access.session, directiveShipId)) {
+      return NextResponse.json(
+        { message: "You do not have access to respond to that directive." },
+        { status: 403 }
+      );
+    }
+  }
 
   if (command.type === "zone.create") {
-    fleetRuntime.createZone(command.zone);
+    auditTargetId = fleetRuntime.createZone(command.zone).id;
   }
 
   if (command.type === "zone.update") {
@@ -178,6 +206,8 @@ export async function POST(request: NextRequest) {
     if (!updatedZone) {
       return NextResponse.json({ message: "Restricted zone not found." }, { status: 404 });
     }
+
+    auditTargetId = updatedZone.id;
   }
 
   if (command.type === "zone.delete") {
@@ -186,6 +216,8 @@ export async function POST(request: NextRequest) {
     if (!removed) {
       return NextResponse.json({ message: "Restricted zone not found." }, { status: 404 });
     }
+
+    auditTargetId = command.zoneId;
   }
 
   if (command.type === "alert.acknowledge") {
@@ -194,6 +226,8 @@ export async function POST(request: NextRequest) {
     if (!alert) {
       return NextResponse.json({ message: "Alert not found." }, { status: 404 });
     }
+
+    auditTargetId = alert.id;
   }
 
   if (command.type === "alert.resolve") {
@@ -202,6 +236,8 @@ export async function POST(request: NextRequest) {
     if (!alert) {
       return NextResponse.json({ message: "Alert not found." }, { status: 404 });
     }
+
+    auditTargetId = alert.id;
   }
 
   if (command.type === "directive.issue") {
@@ -219,6 +255,8 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    auditTargetId = snapshot.directives[0]?.id ?? null;
   }
 
   if (command.type === "directive.accept") {
@@ -230,6 +268,8 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
+
+    auditTargetId = command.directiveId;
   }
 
   if (command.type === "directive.escalate-distress") {
@@ -246,6 +286,20 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
+
+    auditTargetId = command.directiveId;
+  }
+
+  await fleetRuntime.flushPersistence();
+
+  try {
+    await writeOperationalAuditLog({
+      actorUserId: access.session?.userId ?? null,
+      command,
+      targetId: auditTargetId,
+    });
+  } catch (error) {
+    console.error("Failed to write operational audit log.", error);
   }
 
   return NextResponse.json(

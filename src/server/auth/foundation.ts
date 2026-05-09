@@ -25,6 +25,7 @@ async function createTables() {
       email text NOT NULL UNIQUE,
       password_hash text NOT NULL,
       status text NOT NULL DEFAULT 'active',
+      email_verified_at timestamptz,
       created_at timestamptz NOT NULL DEFAULT now(),
       updated_at timestamptz NOT NULL DEFAULT now()
     );
@@ -91,6 +92,53 @@ async function createTables() {
       updated_at timestamptz NOT NULL DEFAULT now()
     );
 
+    CREATE TABLE IF NOT EXISTS restricted_zones (
+      id text PRIMARY KEY,
+      name text NOT NULL,
+      points jsonb NOT NULL,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+
+    CREATE TABLE IF NOT EXISTS directives (
+      id text PRIMARY KEY,
+      ship_id text NOT NULL,
+      type text NOT NULL,
+      issued_at timestamptz NOT NULL,
+      issued_by text NOT NULL,
+      status text NOT NULL,
+      target_port_id text,
+      waypoint jsonb,
+      note text,
+      captain_response_id text,
+      applied_at timestamptz
+    );
+
+    CREATE TABLE IF NOT EXISTS directive_responses (
+      id text PRIMARY KEY,
+      directive_id text NOT NULL,
+      ship_id text NOT NULL,
+      response text NOT NULL,
+      responded_at timestamptz NOT NULL,
+      distress_message text,
+      distress_assessment jsonb
+    );
+
+    CREATE TABLE IF NOT EXISTS alerts (
+      id text PRIMARY KEY,
+      source text NOT NULL,
+      severity text NOT NULL,
+      state text NOT NULL,
+      title text NOT NULL,
+      message text NOT NULL,
+      affected_ship_ids jsonb NOT NULL,
+      created_at timestamptz NOT NULL,
+      acknowledged_at timestamptz,
+      resolved_at timestamptz,
+      metadata jsonb,
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+
     CREATE TABLE IF NOT EXISTS audit_logs (
       id text PRIMARY KEY,
       actor_user_id text,
@@ -101,6 +149,8 @@ async function createTables() {
       created_at timestamptz NOT NULL DEFAULT now()
     );
   `);
+
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified_at timestamptz;`);
 }
 
 async function seedFleetRegistry() {
@@ -155,12 +205,31 @@ async function ensureBootstrapAdmin() {
   if (!existingUser.rows[0]) {
     await pool.query(
       `
-        INSERT INTO users (id, email, password_hash, status, created_at, updated_at)
-        VALUES ($1, $2, $3, 'active', now(), now())
+        INSERT INTO users (
+          id,
+          email,
+          password_hash,
+          status,
+          email_verified_at,
+          created_at,
+          updated_at
+        )
+        VALUES ($1, $2, $3, 'active', now(), now(), now())
       `,
       [userId, admin.email, hashPassword(admin.password)]
     );
   }
+
+  await pool.query(
+    `
+      UPDATE users
+      SET status = 'active',
+          email_verified_at = COALESCE(email_verified_at, now()),
+          updated_at = now()
+      WHERE id = $1
+    `,
+    [userId]
+  );
 
   await pool.query(
     `

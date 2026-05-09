@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 import { resolveRequestAccess } from "@/server/auth/request";
+import { scopeFleetSnapshotForSession } from "@/server/auth/scope";
 import { getFleetRuntime } from "@/server/simulation/runtime";
 
 export const runtime = "nodejs";
@@ -25,8 +26,10 @@ function resolveRealtimeTransport() {
 }
 
 export async function GET(request: NextRequest) {
+  const requestedShipId = request.nextUrl.searchParams.get("shipId");
   const access = await resolveRequestAccess(request, {
     allowedRoles: ["super_admin", "command", "captain"],
+    requiredCaptainShipId: requestedShipId ?? undefined,
   });
 
   if (access.response) {
@@ -34,11 +37,30 @@ export async function GET(request: NextRequest) {
   }
 
   const fleetRuntime = getFleetRuntime();
+  await fleetRuntime.ensureReady();
   fleetRuntime.start();
+  const scopedSnapshot = scopeFleetSnapshotForSession(
+    fleetRuntime.getSnapshot(),
+    access.session,
+    requestedShipId
+  );
 
-  return NextResponse.json(fleetRuntime.getBootstrapPayload(resolveRealtimeTransport()), {
-    headers: {
-      "Cache-Control": "no-store, no-cache, must-revalidate",
+  if (!scopedSnapshot) {
+    return NextResponse.json(
+      { message: "You do not have access to this ship feed." },
+      { status: 403 }
+    );
+  }
+
+  return NextResponse.json(
+    {
+      ...fleetRuntime.getBootstrapPayload(resolveRealtimeTransport()),
+      snapshot: scopedSnapshot,
     },
-  });
+    {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+      },
+    }
+  );
 }

@@ -2,6 +2,7 @@
 
 - `components/home/`: entry-screen cards for roles, seed ship preview, and the new auth-mode toggle card.
 - `components/shell/`: reusable route shell and section card primitives.
+- `features/admin/components/`: super-admin invite form and member directory cards for protected-mode access control.
 - `config/`: grading thresholds, role definitions, and env/service configuration.
 - `features/alerts/components/`: shared alert center for visual alert presentation across both roles.
 - `features/alerts/hooks/`: audible alert hook that plays a short tone when new active alerts arrive.
@@ -17,7 +18,7 @@
 - `features/playback/hooks/`: command-side hook that combines the live stream with read-only playback history.
 - `lib/geo/`: distance, destination, and polygon helpers used by the simulation engine and geofence checks.
 - `lib/realtime/`: socket protocol helpers, the bootstrap plus WebSocket client hook, and the command control client.
-- `server/auth/`: Phase 1 protected-mode foundation including schema, DB connection, bootstrap admin seeding, sessions, and request guards.
+- `server/auth/`: Phase 2 protected-mode layer including schema, DB connection, bootstrap seeding, session handling, invite and reset flows, audit logging, member management, scoped snapshot rules, and page or request guards.
 - `server/alerts/`: server-side geofence evaluation that creates and updates authoritative alerts.
 - `server/diagnostics/`: judge-facing runtime diagnostics summary for cadence, playback, weather fallback, and distress-provider state.
 - `server/directives/`: directive issuance, captain response transitions, and provider-backed distress extraction.

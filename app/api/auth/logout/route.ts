@@ -1,22 +1,41 @@
 import { NextResponse } from "next/server";
 
 import { AUTH_SESSION_COOKIE } from "@/config/auth";
-import { revokeSession } from "@/server/auth/session";
+import { writeAuditLog } from "@/server/auth/audit";
+import { getSessionIdentity, revokeSession } from "@/server/auth/session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function POST(request: Request) {
-  const sessionToken = request.headers
-    .get("cookie")
+function parseSessionToken(cookieHeader: string | null) {
+  return cookieHeader
     ?.split(";")
     .map((entry) => entry.trim())
     .find((entry) => entry.startsWith(`${AUTH_SESSION_COOKIE}=`))
     ?.split("=")
     .slice(1)
     .join("=");
+}
 
-  await revokeSession(sessionToken ? decodeURIComponent(sessionToken) : null);
+export async function POST(request: Request) {
+  const sessionToken = parseSessionToken(request.headers.get("cookie"));
+  const decodedSessionToken = sessionToken ? decodeURIComponent(sessionToken) : null;
+  const sessionIdentity = await getSessionIdentity(decodedSessionToken);
+
+  await revokeSession(decodedSessionToken);
+
+  if (sessionIdentity) {
+    try {
+      await writeAuditLog({
+        actorUserId: sessionIdentity.userId,
+        action: "member.logout.succeeded",
+        targetType: "session",
+        targetId: sessionIdentity.userId,
+      });
+    } catch (error) {
+      console.error("Failed to write logout audit log.", error);
+    }
+  }
 
   const response = NextResponse.redirect(new URL("/", request.url), 303);
   response.cookies.set({

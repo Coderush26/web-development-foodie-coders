@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { AUTH_SESSION_COOKIE } from "@/config/auth";
+import { resolveSafeNextPath } from "@/server/auth/access";
+import { writeAuditLog } from "@/server/auth/audit";
 import { createSessionForCredentials } from "@/server/auth/session";
 
 export const runtime = "nodejs";
@@ -25,15 +27,29 @@ export async function POST(request: Request) {
       userAgent: request.headers.get("user-agent"),
     });
 
-    if (!session) {
+    if (!session.ok) {
       return NextResponse.redirect(
-        new URL("/auth/login?error=invalid-credentials", request.url),
+        new URL(`/auth/login?error=${session.reason}`, request.url),
         303
       );
     }
 
-    const safeNextPath = nextPath.startsWith("/") ? nextPath : "/command";
+    const safeNextPath = resolveSafeNextPath(session.identity, nextPath);
     const response = NextResponse.redirect(new URL(safeNextPath, request.url), 303);
+
+    try {
+      await writeAuditLog({
+        actorUserId: session.identity.userId,
+        action: "member.login.succeeded",
+        targetType: "session",
+        targetId: session.identity.userId,
+        metadata: {
+          nextPath: safeNextPath,
+        },
+      });
+    } catch (error) {
+      console.error("Failed to write login audit log.", error);
+    }
 
     response.cookies.set({
       name: AUTH_SESSION_COOKIE,

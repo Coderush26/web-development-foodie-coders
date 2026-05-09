@@ -13,5 +13,10 @@ export function resolveAuthMode(value: string | undefined): AuthMode {
 }
 
 export function isProtectedAppPath(pathname: string) {
-  return pathname === "/command" || pathname.startsWith("/captain/");
+  return (
+    pathname === "/admin" ||
+    pathname.startsWith("/admin/") ||
+    pathname === "/command" ||
+    pathname.startsWith("/captain/")
+  );
 }

@@ -114,6 +114,7 @@ export default async function Home() {
             ? {
                 fullName: session.fullName,
                 roles: session.roles,
+                captainShipIds: session.captainShipIds,
               }
             : null
         }

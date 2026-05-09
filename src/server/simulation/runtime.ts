@@ -33,14 +33,30 @@ import type { RestrictedZone, RestrictedZoneDraft } from "@/types/zones";
 
 import { SIMULATION_TICK_MS } from "@/server/simulation/constants";
 import { advanceFleetSnapshot, createInitialFleetSnapshot } from "@/server/simulation/engine";
+import { scopeFleetSnapshotForSession } from "@/server/auth/scope";
+import type { AuthSessionIdentity } from "@/server/auth/session";
+import {
+  buildZoneMembershipByZoneId,
+  hasOperationalPersistenceChanges,
+  hydrateOperationalSnapshot as hydratePersistedOperationalSnapshot,
+} from "@/server/persistence/state";
+import { loadOperationalState, persistOperationalState } from "@/server/persistence/store";
+
+type FleetSocketClient = {
+  connectionId: string;
+  session: AuthSessionIdentity | null;
+  requestedShipId: string | null;
+};
 
 class FleetRuntime {
   private weatherService = new FleetWeatherService();
   private snapshot: FleetRuntimeSnapshot;
   private playbackHistoryState;
   private intervalHandle: NodeJS.Timeout | null = null;
-  private sockets = new Map<WebSocket, string>();
+  private sockets = new Map<WebSocket, FleetSocketClient>();
   private membershipByZoneId = new Map<string, Set<string>>();
+  private readyPromise: Promise<void> | null = null;
+  private persistenceWritePromise: Promise<void> = Promise.resolve();
 
   constructor() {
     this.snapshot = evaluateOperationalAlerts(
@@ -77,6 +93,35 @@ class FleetRuntime {
     }, SIMULATION_TICK_MS);
   }
 
+  async ensureReady() {
+    if (!this.readyPromise) {
+      this.readyPromise = (async () => {
+        const persistedState = await loadOperationalState();
+
+        if (!persistedState) {
+          return;
+        }
+
+        this.snapshot = evaluateOperationalAlerts(
+          this.hydrateOperationalSnapshot(
+            hydratePersistedOperationalSnapshot(this.snapshot, persistedState)
+          )
+        );
+        this.playbackHistoryState = createPlaybackHistoryState(this.snapshot);
+        this.membershipByZoneId = buildZoneMembershipByZoneId(this.snapshot);
+      })().catch((error) => {
+        this.readyPromise = null;
+        throw error;
+      });
+    }
+
+    await this.readyPromise;
+  }
+
+  async flushPersistence() {
+    await this.persistenceWritePromise;
+  }
+
   getSnapshot() {
     return this.snapshot;
   }
@@ -103,9 +148,18 @@ class FleetRuntime {
     return buildFleetRuntimeDiagnostics(this.snapshot, this.playbackHistoryState.payload);
   }
 
-  attachClient(socket: WebSocket) {
+  attachClient(
+    socket: WebSocket,
+    options?: { session?: AuthSessionIdentity | null; requestedShipId?: string | null }
+  ) {
     const connectionId = randomUUID();
-    this.sockets.set(socket, connectionId);
+    const client = {
+      connectionId,
+      session: options?.session ?? null,
+      requestedShipId: options?.requestedShipId ?? null,
+    } satisfies FleetSocketClient;
+
+    this.sockets.set(socket, client);
     this.syncViewerCount();
 
     this.send(
@@ -117,7 +171,7 @@ class FleetRuntime {
         this.snapshot.sequence
       )
     );
-    this.send(socket, createFleetSnapshotMessage(this.snapshot));
+    this.sendScopedSnapshot(socket, client);
 
     socket.on("message", (value) => {
       const message = parseFleetClientMessage(value.toString());
@@ -131,7 +185,7 @@ class FleetRuntime {
         message.lastKnownSequence === undefined ||
         message.lastKnownSequence < this.snapshot.sequence
       ) {
-        this.send(socket, createFleetSnapshotMessage(this.snapshot));
+        this.sendScopedSnapshot(socket, client);
       }
     });
 
@@ -283,6 +337,7 @@ class FleetRuntime {
   }
 
   private commitSnapshot(nextSnapshot: FleetRuntimeSnapshot) {
+    const previousSnapshot = this.snapshot;
     const hydratedSnapshot = this.hydrateOperationalSnapshot(nextSnapshot);
     const evaluation = evaluateGeofenceState({
       previousSnapshot: this.snapshot,
@@ -305,10 +360,18 @@ class FleetRuntime {
       eventDecoratedSnapshot.newEvents
     );
     this.membershipByZoneId = evaluation.membershipByZoneId;
+
+    if (hasOperationalPersistenceChanges(previousSnapshot, this.snapshot)) {
+      this.persistenceWritePromise = this.persistenceWritePromise
+        .then(() => persistOperationalState(this.snapshot))
+        .catch((error) => {
+          console.error("Failed to persist fleet operational state.", error);
+        });
+    }
   }
 
   private publishSnapshot() {
-    this.broadcast(createFleetSnapshotMessage(this.snapshot));
+    this.broadcast();
   }
 
   private commitMutation(
@@ -351,10 +414,26 @@ class FleetRuntime {
     return this.snapshot.alerts.find((alert) => alert.id === alertId) ?? existingAlert;
   }
 
-  private broadcast(message: ReturnType<typeof createFleetSnapshotMessage>) {
-    for (const socket of this.sockets.keys()) {
-      this.send(socket, message);
+  private broadcast() {
+    for (const [socket, client] of this.sockets.entries()) {
+      this.sendScopedSnapshot(socket, client);
     }
+  }
+
+  private sendScopedSnapshot(socket: WebSocket, client: FleetSocketClient) {
+    const scopedSnapshot = scopeFleetSnapshotForSession(
+      this.snapshot,
+      client.session,
+      client.requestedShipId
+    );
+
+    if (!scopedSnapshot) {
+      this.send(socket, createFleetErrorMessage("You do not have access to this fleet stream."));
+      socket.close();
+      return;
+    }
+
+    this.send(socket, createFleetSnapshotMessage(scopedSnapshot));
   }
 
   private send(socket: WebSocket, message: object) {

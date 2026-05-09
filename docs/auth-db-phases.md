@@ -4,26 +4,27 @@ This file is for the next productization step, not for the already completed cha
 
 ## Implementation Status
 
-Phase 1 is now partially implemented in the codebase.
+Phase 1 is implemented and Phase 2 is now largely implemented in the codebase.
 
 Already live:
 
 - home-page auth toggle that switches the current browser between no-auth mode and protected mode
-- Next 16 `proxy.ts` guard for `/command` and `/captain/[shipId]`
-- bootstrap admin sign-in page at `/auth/login`
+- Next 16 `proxy.ts` guard for `/admin`, `/command`, and `/captain/[shipId]`
+- shared sign-in page at `/auth/login`
 - Postgres-backed users, sessions, roles, ship-registry, and audit tables
 - bootstrap fleet seed import into `fleet_ship_registry`
 - protected API guards for bootstrap, control, playback, and diagnostics routes
-- WebSocket session check on Node hosts
+- protected super-admin dashboard at `/admin`
+- member invitation form with role and captain ship assignment
+- invitation acceptance page, email verification flow, forgot-password flow, reset-password page, and signed-in change-password screen
+- role-aware redirects and captain-route enforcement
+- scoped WebSocket and bootstrap access on Node hosts so protected captains stay limited to their own ship feed plus nearby context
+- admin disable or reactivate flow and invite resend flow
 
 Still remaining for later phases:
 
-- member invitations
-- admin dashboard UI
-- forgot-password and reset flows
-- email verification
-- full role-aware page navigation
 - persistent directives, alerts, and zones beyond the current live runtime
+- richer denied-state UI polish and full local Mailpit or hosted email delivery integration beyond the current console-preview mode
 
 ## Straight Answer
 
