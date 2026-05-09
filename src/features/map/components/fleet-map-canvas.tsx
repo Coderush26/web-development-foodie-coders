@@ -14,15 +14,18 @@ import {
 } from "react-leaflet";
 
 import { getFleetScenarioSeed, getPortById } from "@/features/fleet/data/scenario-seed";
+import { FleetOperationalOverlays } from "@/features/map/components/fleet-operational-overlays";
 import type { FleetDisplayShip } from "@/features/fleet/hooks/use-interpolated-fleet-view";
 import { RestrictedZoneControls } from "@/features/map/components/restricted-zone-controls";
 import type { GeoPoint } from "@/types/fleet";
+import type { WeatherSnapshot } from "@/types/weather";
 import type { RestrictedZone, RestrictedZoneDraft } from "@/types/zones";
 
 export type FleetMapCanvasProps = {
   role: "command" | "captain";
   ships: FleetDisplayShip[];
   zones?: RestrictedZone[];
+  weather?: WeatherSnapshot | null;
   selectedShipId: string | null;
   onSelectShip?: (shipId: string) => void;
   onCreateZone?: (zone: RestrictedZoneDraft) => void | Promise<void>;
@@ -128,6 +131,7 @@ export function FleetMapCanvas({
   role,
   ships,
   zones = [],
+  weather,
   selectedShipId,
   onSelectShip,
   onCreateZone,
@@ -154,6 +158,14 @@ export function FleetMapCanvas({
       <Polygon
         positions={scenarioSeed.navigableWater.map(toLatLng)}
         pathOptions={{ color: "#0f766e", fillColor: "#d7ece8", fillOpacity: 0.24, weight: 2 }}
+      />
+
+      <FleetOperationalOverlays
+        role={role}
+        ships={ships}
+        weather={weather}
+        selectedShipId={selectedShipId}
+        captainShipId={captainShipId}
       />
 
       <RestrictedZoneControls

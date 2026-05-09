@@ -10,6 +10,7 @@ import {
   createFleetSnapshotMessage,
   parseFleetClientMessage,
 } from "@/lib/realtime/messages";
+import { evaluateOperationalAlerts } from "@/server/alerts/operational";
 import { evaluateGeofenceState } from "@/server/alerts/geofence";
 import {
   acceptDirective as acceptDirectiveSnapshot,
@@ -18,6 +19,8 @@ import {
   issueDirective as issueDirectiveSnapshot,
   type IssueDirectiveInput,
 } from "@/server/directives/service";
+import { applyOperationalPlanning } from "@/server/routing/operational";
+import { FleetWeatherService } from "@/server/routing/weather-service";
 import type { FleetBootstrapPayload, FleetRuntimeSnapshot } from "@/types/realtime";
 import type { FleetAlert } from "@/types/alerts";
 import type { DistressAssessment } from "@/types/distress";
@@ -27,23 +30,31 @@ import { SIMULATION_TICK_MS } from "@/server/simulation/constants";
 import { advanceFleetSnapshot, createInitialFleetSnapshot } from "@/server/simulation/engine";
 
 class FleetRuntime {
-  private snapshot: FleetRuntimeSnapshot = createInitialFleetSnapshot();
+  private weatherService = new FleetWeatherService();
+  private snapshot: FleetRuntimeSnapshot;
   private intervalHandle: NodeJS.Timeout | null = null;
   private sockets = new Map<WebSocket, string>();
   private membershipByZoneId = new Map<string, Set<string>>();
+
+  constructor() {
+    this.snapshot = evaluateOperationalAlerts(
+      applyOperationalPlanning(createInitialFleetSnapshot(), this.weatherService.getSnapshot())
+    );
+  }
 
   start() {
     if (this.intervalHandle) {
       return;
     }
 
+    this.weatherService.prime();
+
     this.intervalHandle = setInterval(() => {
       const tickStartedAt = Date.now();
-      const nextSnapshot = advanceFleetSnapshot(
-        applyAcceptedDirectivesToSnapshot(this.snapshot),
-        this.sockets.size,
-        0
+      const plannedSnapshot = this.hydrateOperationalSnapshot(
+        applyAcceptedDirectivesToSnapshot(this.snapshot)
       );
+      const nextSnapshot = advanceFleetSnapshot(plannedSnapshot, this.sockets.size, 0);
       const tickDurationMs = Date.now() - tickStartedAt;
 
       this.commitSnapshot({
@@ -246,17 +257,23 @@ class FleetRuntime {
     };
   }
 
+  private hydrateOperationalSnapshot(snapshot: FleetRuntimeSnapshot) {
+    return applyOperationalPlanning(snapshot, this.weatherService.getSnapshot());
+  }
+
   private commitSnapshot(nextSnapshot: FleetRuntimeSnapshot) {
+    const hydratedSnapshot = this.hydrateOperationalSnapshot(nextSnapshot);
     const evaluation = evaluateGeofenceState({
       previousSnapshot: this.snapshot,
-      nextSnapshot,
+      nextSnapshot: hydratedSnapshot,
       previousMembershipByZoneId: this.membershipByZoneId,
     });
+    const operationalSnapshot = evaluateOperationalAlerts(evaluation.nextSnapshot);
 
     this.snapshot = {
-      ...evaluation.nextSnapshot,
+      ...operationalSnapshot,
       telemetry: {
-        ...evaluation.nextSnapshot.telemetry,
+        ...operationalSnapshot.telemetry,
         viewerCount: this.sockets.size,
       },
     };

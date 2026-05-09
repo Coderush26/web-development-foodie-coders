@@ -1,13 +1,17 @@
 import type { FleetAlert } from "@/types/alerts";
 import type { CaptainResponse, FleetDirective } from "@/types/directives";
 import type { PlaybackEvent } from "@/types/playback";
+import type { ShipRoutePlan, ShipWeatherState } from "@/types/routing";
 import type { ShipSnapshot } from "@/types/fleet";
+import type { WeatherSnapshot } from "@/types/weather";
 import type { RestrictedZone } from "@/types/zones";
 
 export interface FleetShipRuntimeSnapshot extends ShipSnapshot {
   lastUpdatedAt: string;
   distanceToDestinationKm: number;
   fuelBurnRateTonsPerHour: number;
+  routePlan: ShipRoutePlan;
+  weatherState: ShipWeatherState;
 }
 
 export interface FleetRuntimeTelemetry {
@@ -28,6 +32,7 @@ export interface FleetRuntimeSnapshot {
   simulationStartedAt: string;
   tickIntervalMs: number;
   ships: FleetShipRuntimeSnapshot[];
+  weather: WeatherSnapshot | null;
   zones: RestrictedZone[];
   alerts: FleetAlert[];
   directives: FleetDirective[];

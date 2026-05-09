@@ -5,5 +5,6 @@ export * from "@/types/directives";
 export * from "@/types/fleet";
 export * from "@/types/playback";
 export * from "@/types/realtime";
+export * from "@/types/routing";
 export * from "@/types/weather";
 export * from "@/types/zones";

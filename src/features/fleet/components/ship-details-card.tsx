@@ -31,6 +31,10 @@ function formatCoordinate(value: number) {
   return value.toFixed(3);
 }
 
+function formatRouteReason(value: string) {
+  return value.replace(/-/g, " ");
+}
+
 export function ShipDetailsCard({ ship, roleLabel }: ShipDetailsCardProps) {
   if (!ship) {
     return (
@@ -97,6 +101,33 @@ export function ShipDetailsCard({ ship, roleLabel }: ShipDetailsCardProps) {
           <dt className="text-xs uppercase tracking-[0.2em] text-muted">Distance remaining</dt>
           <dd className="mt-1 text-sm text-foreground">
             {ship.distanceToDestinationKm.toFixed(2)} km
+          </dd>
+        </div>
+        <div>
+          <dt className="text-xs uppercase tracking-[0.2em] text-muted">Route status</dt>
+          <dd className="mt-1 text-sm text-foreground">
+            {ship.routePlan.status} · {formatRouteReason(ship.routePlan.reason)}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-xs uppercase tracking-[0.2em] text-muted">Route path</dt>
+          <dd className="mt-1 text-sm text-foreground">
+            {ship.routePlan.points.length} waypoints · {ship.routePlan.totalDistanceKm.toFixed(1)}{" "}
+            km
+          </dd>
+        </div>
+        <div>
+          <dt className="text-xs uppercase tracking-[0.2em] text-muted">Fuel forecast</dt>
+          <dd className="mt-1 text-sm text-foreground">
+            {ship.routePlan.estimatedFuelRequiredTons.toFixed(1)} tons ·{" "}
+            {ship.routePlan.fuelFeasible ? "feasible" : "shortfall"}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-xs uppercase tracking-[0.2em] text-muted">Current weather</dt>
+          <dd className="mt-1 text-sm text-foreground">
+            {ship.weatherState.severity} · {ship.weatherState.windSpeedKnots.toFixed(1)} kn ·{" "}
+            {ship.weatherState.waveHeightMeters.toFixed(1)} m
           </dd>
         </div>
         <div>

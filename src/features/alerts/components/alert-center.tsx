@@ -66,8 +66,8 @@ export function AlertCenter({
       title="Alert center"
       description={
         role === "command"
-          ? "Shared geofence alerts land here first. Command can acknowledge or resolve them as the situation changes."
-          : "Captains see the same alert stream, while acknowledgement stays on the command surface."
+          ? "Shared geofence, routing, weather, and proximity alerts land here first. Command can acknowledge or resolve them as the situation changes."
+          : "Captains see the same operational alert stream, while acknowledgement stays on the command surface."
       }
       tone={cardTone}
     >
@@ -146,7 +146,7 @@ export function AlertCenter({
           })
         ) : (
           <p className="text-sm leading-7 text-muted">
-            No restricted-zone alerts are active right now.
+            No active operational alerts are open right now.
           </p>
         )}
       </div>

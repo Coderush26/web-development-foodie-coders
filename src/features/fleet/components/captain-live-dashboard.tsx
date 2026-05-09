@@ -66,6 +66,7 @@ export function CaptainLiveDashboard({ shipId }: CaptainLiveDashboardProps) {
             role="captain"
             ships={displayShips}
             zones={snapshot?.zones ?? []}
+            weather={snapshot?.weather ?? null}
             selectedShipId={shipId}
             captainShipId={shipId}
           />

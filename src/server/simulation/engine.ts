@@ -1,6 +1,8 @@
 import { getFleetScenarioSeed } from "@/features/fleet/data/scenario-seed";
 import { bearingBetweenPoints, haversineDistanceKm, destinationPoint } from "@/lib/geo/navigation";
 import type { GeoPoint, Port, ShipStatus } from "@/types/fleet";
+import type { ShipRoutePlan, ShipWeatherState } from "@/types/routing";
+import { getFuelBurnRateTonsPerHour as computeFuelBurnRateTonsPerHour } from "@/server/simulation/fuel";
 import type {
   FleetRuntimeSnapshot,
   FleetRuntimeTelemetry,
@@ -9,8 +11,6 @@ import type {
 
 import {
   ARRIVAL_RADIUS_KM,
-  BASE_FUEL_BURN_TONS_PER_HOUR,
-  FUEL_BURN_TONS_PER_HOUR_PER_KNOT,
   KM_PER_NAUTICAL_MILE,
   SIMULATION_TICK_MS,
   SIMULATION_TICK_RATE_HZ,
@@ -20,12 +20,37 @@ const HOURS_PER_MILLISECOND = 1 / 3_600_000;
 const scenarioSeed = getFleetScenarioSeed();
 const portLookup = new Map(scenarioSeed.ports.map((port) => [port.id, port]));
 
+function createDefaultRoutePlan(generatedAt: string): ShipRoutePlan {
+  return {
+    status: "direct",
+    targetIntentType: "destination-port",
+    points: [],
+    totalDistanceKm: 0,
+    directDistanceKm: 0,
+    estimatedFuelRequiredTons: 0,
+    fuelFeasible: true,
+    recomputedAt: generatedAt,
+    reason: "initial",
+  };
+}
+
+function createDefaultWeatherState(): ShipWeatherState {
+  return {
+    cellId: null,
+    severity: "clear",
+    fuelMultiplier: 1,
+    windSpeedKnots: 0,
+    waveHeightMeters: 0,
+    sampledAt: null,
+  };
+}
+
 function getDestinationPort(ship: FleetShipRuntimeSnapshot): Port | undefined {
   return portLookup.get(ship.destinationPortId);
 }
 
-function getFuelBurnRateTonsPerHour(ship: FleetShipRuntimeSnapshot) {
-  return BASE_FUEL_BURN_TONS_PER_HOUR + ship.speedKnots * FUEL_BURN_TONS_PER_HOUR_PER_KNOT;
+function resolveFuelBurnRateTonsPerHour(ship: FleetShipRuntimeSnapshot) {
+  return computeFuelBurnRateTonsPerHour(ship.speedKnots, ship.weatherState.fuelMultiplier);
 }
 
 function getIntentTarget(
@@ -47,6 +72,31 @@ function getIntentTarget(
   return {
     kind: "port",
     position: destination.position,
+  };
+}
+
+function getAdvanceTarget(
+  ship: FleetShipRuntimeSnapshot
+): { kind: "port" | "waypoint"; position: GeoPoint } | null {
+  const intentTarget = getIntentTarget(ship);
+
+  if (!intentTarget || ship.routePlan.status === "blocked") {
+    return intentTarget;
+  }
+
+  const nextRoutePoint = ship.routePlan.points[0];
+
+  if (!nextRoutePoint) {
+    return intentTarget;
+  }
+
+  const isFinalIntentTarget =
+    ship.routePlan.points.length === 1 &&
+    haversineDistanceKm(nextRoutePoint, intentTarget.position) <= ARRIVAL_RADIUS_KM;
+
+  return {
+    kind: isFinalIntentTarget ? intentTarget.kind : "waypoint",
+    position: nextRoutePoint,
   };
 }
 
@@ -115,8 +165,8 @@ function advanceShip(
   tickIntervalMs: number
 ): FleetShipRuntimeSnapshot {
   const destination = getDestinationPort(ship);
-  const intentTarget = getIntentTarget(ship);
-  const fuelBurnRateTonsPerHour = getFuelBurnRateTonsPerHour(ship);
+  const intentTarget = getAdvanceTarget(ship);
+  const fuelBurnRateTonsPerHour = resolveFuelBurnRateTonsPerHour(ship);
 
   if (ship.intent.type === "hold-position") {
     return {
@@ -128,6 +178,17 @@ function advanceShip(
       distanceToDestinationKm: destination
         ? haversineDistanceKm(ship.position, destination.position)
         : 0,
+    };
+  }
+
+  if (ship.routePlan.status === "blocked") {
+    return {
+      ...ship,
+      speedKnots: 0,
+      status: resolveStoppedStatus(ship),
+      lastUpdatedAt: generatedAt,
+      fuelBurnRateTonsPerHour,
+      distanceToDestinationKm: ship.routePlan.directDistanceKm,
     };
   }
 
@@ -158,6 +219,20 @@ function advanceShip(
   }
 
   if (intentTarget.kind === "waypoint" && remainingDistanceKm <= ARRIVAL_RADIUS_KM) {
+    const reachedIntentWaypoint =
+      ship.intent.type === "waypoint" && ship.routePlan.points.length <= 1;
+
+    if (!reachedIntentWaypoint) {
+      return {
+        ...ship,
+        position: intentTarget.position,
+        status: resolveActiveStatus(ship, ship.speedKnots, false),
+        lastUpdatedAt: generatedAt,
+        fuelBurnRateTonsPerHour,
+        distanceToDestinationKm: 0,
+      };
+    }
+
     return {
       ...ship,
       position: intentTarget.position,
@@ -190,6 +265,41 @@ function advanceShip(
   const outOfFuel = ship.fuelTons <= requestedFuel;
 
   if (travelledDistanceKm >= remainingDistanceKm) {
+    if (intentTarget.kind === "waypoint" && ship.intent.type === "waypoint") {
+      return {
+        ...ship,
+        position: intentTarget.position,
+        speedKnots: 0,
+        fuelTons: Math.max(
+          0,
+          ship.fuelTons - requestedFuel * Math.min(1, remainingDistanceKm / travelledDistanceKm)
+        ),
+        status: resolveStoppedStatus(ship),
+        intent: {
+          type: "hold-position",
+        },
+        lastUpdatedAt: generatedAt,
+        fuelBurnRateTonsPerHour,
+        distanceToDestinationKm: haversineDistanceKm(intentTarget.position, destination.position),
+      };
+    }
+
+    if (intentTarget.kind === "waypoint" && ship.intent.type !== "waypoint") {
+      return {
+        ...ship,
+        position: intentTarget.position,
+        speedKnots: outOfFuel ? 0 : ship.speedKnots,
+        fuelTons: Math.max(
+          0,
+          ship.fuelTons - requestedFuel * Math.min(1, remainingDistanceKm / travelledDistanceKm)
+        ),
+        status: resolveActiveStatus(ship, outOfFuel ? 0 : ship.speedKnots, outOfFuel),
+        lastUpdatedAt: generatedAt,
+        fuelBurnRateTonsPerHour,
+        distanceToDestinationKm: 0,
+      };
+    }
+
     return {
       ...ship,
       position: destination.position,
@@ -235,8 +345,9 @@ export function createInitialFleetSnapshot(viewerCount = 0): FleetRuntimeSnapsho
       ship.position,
       portLookup.get(ship.destinationPortId)?.position ?? ship.position
     ),
-    fuelBurnRateTonsPerHour:
-      BASE_FUEL_BURN_TONS_PER_HOUR + ship.speedKnots * FUEL_BURN_TONS_PER_HOUR_PER_KNOT,
+    fuelBurnRateTonsPerHour: computeFuelBurnRateTonsPerHour(ship.speedKnots),
+    routePlan: createDefaultRoutePlan(generatedAt),
+    weatherState: createDefaultWeatherState(),
   }));
 
   return {
@@ -246,6 +357,7 @@ export function createInitialFleetSnapshot(viewerCount = 0): FleetRuntimeSnapsho
     simulationStartedAt: generatedAt,
     tickIntervalMs: SIMULATION_TICK_MS,
     ships,
+    weather: null,
     zones: [],
     alerts: [],
     directives: [],

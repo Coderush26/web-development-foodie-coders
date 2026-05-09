@@ -65,6 +65,7 @@ export function CommandLiveDashboard() {
             role="command"
             ships={displayShips}
             zones={snapshot?.zones ?? []}
+            weather={snapshot?.weather ?? null}
             selectedShipId={selectedShipId}
             onSelectShip={setSelectedShipId}
             onCreateZone={createZone}

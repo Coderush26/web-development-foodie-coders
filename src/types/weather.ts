@@ -12,7 +12,8 @@ export interface WeatherCell {
 }
 
 export interface WeatherSnapshot {
-  provider: "open-meteo" | "stormglass";
+  provider: "open-meteo" | "stormglass" | "fallback";
   sampledAt: string;
+  usingFallback: boolean;
   cells: WeatherCell[];
 }
