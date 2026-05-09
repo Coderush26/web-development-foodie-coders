@@ -1,6 +1,7 @@
 # docs
 
 - `phases.md`: execution roadmap for the whole build.
+- `demo-checklist.md`: grading-oriented end-to-end checklist for startup, command flow, captain flow, and playback review.
 - `problem-statement/`: grading statement and shared fleet seed.
 - `project-tree/`: quick index of important source areas for future chats.
 - `project-tree/app.md`: current App Router surfaces, including the fleet bootstrap API route.

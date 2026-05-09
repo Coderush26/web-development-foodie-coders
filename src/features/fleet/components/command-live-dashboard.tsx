@@ -4,6 +4,7 @@ import { SectionCard } from "@/components/shell/section-card";
 import { AlertCenter } from "@/features/alerts/components/alert-center";
 import { useAlertAudio } from "@/features/alerts/hooks/use-alert-audio";
 import { DirectiveControlCard } from "@/features/command/components/directive-control-card";
+import { RuntimeDiagnosticsCard } from "@/features/command/components/runtime-diagnostics-card";
 import { useFleetCommandControls } from "@/features/command/hooks/use-fleet-command-controls";
 import { FleetSelectionList } from "@/features/fleet/components/fleet-selection-list";
 import { LiveSystemBar } from "@/features/fleet/components/live-system-bar";
@@ -113,6 +114,7 @@ export function CommandLiveDashboard() {
             onSetPlaybackMode={() => selectPlaybackFrame(Math.max(selectedFrameIndex, 0))}
             onJumpToLive={jumpToLive}
           />
+          <RuntimeDiagnosticsCard />
           {isPlaybackMode ? (
             <SectionCard
               title="Playback controls"

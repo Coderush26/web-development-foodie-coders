@@ -12,6 +12,7 @@ import {
 } from "@/lib/realtime/messages";
 import { createPlaybackHistoryState, recordPlaybackSnapshot } from "@/server/playback/history";
 import { mergeRuntimeEvents } from "@/server/playback/events";
+import { buildFleetRuntimeDiagnostics } from "@/server/diagnostics/runtime";
 import { evaluateOperationalAlerts } from "@/server/alerts/operational";
 import { evaluateGeofenceState } from "@/server/alerts/geofence";
 import {
@@ -26,6 +27,7 @@ import { FleetWeatherService } from "@/server/routing/weather-service";
 import type { FleetBootstrapPayload, FleetRuntimeSnapshot } from "@/types/realtime";
 import type { FleetAlert } from "@/types/alerts";
 import type { DistressAssessment } from "@/types/distress";
+import type { FleetRuntimeDiagnostics } from "@/types/diagnostics";
 import type { PlaybackHistoryPayload } from "@/types/playback";
 import type { RestrictedZone, RestrictedZoneDraft } from "@/types/zones";
 
@@ -89,6 +91,10 @@ class FleetRuntime {
 
   getPlaybackHistory(): PlaybackHistoryPayload {
     return this.playbackHistoryState.payload;
+  }
+
+  getDiagnostics(): FleetRuntimeDiagnostics {
+    return buildFleetRuntimeDiagnostics(this.snapshot, this.playbackHistoryState.payload);
   }
 
   attachClient(socket: WebSocket) {
