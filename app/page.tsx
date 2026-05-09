@@ -3,32 +3,11 @@ import Link from "next/link";
 import { RoleEntryCard } from "@/components/home/role-entry-card";
 import { ShipRosterPreview } from "@/components/home/ship-roster-preview";
 import { SectionCard } from "@/components/shell/section-card";
-import { appCopy, gradingThresholds, roleDefinitions } from "@/config/scenario";
-import { getFleetOverview, listCaptainRouteSamples } from "@/features/fleet/data/scenario-seed";
+import { appCopy, roleDefinitions } from "@/config/scenario";
+import { listCaptainRouteSamples } from "@/features/fleet/data/scenario-seed";
 
 export default function Home() {
-  const overview = getFleetOverview();
   const captainSamples = listCaptainRouteSamples();
-  const metrics = [
-    { label: "Active ships", value: `${overview.shipCount}` },
-    { label: "Ports in seed", value: `${overview.portCount}` },
-    { label: "Live tick target", value: `${gradingThresholds.minUpdateRateHz} Hz` },
-    { label: "Alert deadline", value: `${gradingThresholds.geofenceAlertDeadlineMs / 1000}s` },
-  ];
-  const operationalHighlights = [
-    {
-      title: "Live command control",
-      body: "Monitor all 15 ships, draw restricted zones, handle alerts, and issue directives from one operational dashboard.",
-    },
-    {
-      title: "Captain response",
-      body: "Each captain route is ship-scoped, receives directives in real time, and can accept or escalate distress with structured impact.",
-    },
-    {
-      title: "Playback and review",
-      body: "Command can switch into read-only playback, scrub the last hour of fleet history, and review the related event trail.",
-    },
-  ];
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-8 px-6 py-8 lg:px-10 lg:py-12">
@@ -39,15 +18,25 @@ export default function Home() {
           <div className="space-y-6">
             <div className="space-y-4">
               <p className="font-mono text-sm uppercase tracking-[0.28em] text-accent">
-                Operational navigation
+                Access portal
               </p>
               <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-foreground md:text-6xl">
-                {appCopy.name}
+                Role-based entry for live operations
               </h1>
-              <p className="max-w-2xl text-lg leading-8 text-muted">{appCopy.summary}</p>
+              <p className="max-w-3xl text-lg leading-8 text-muted">
+                {appCopy.summary} Use this route as the clean entry surface for navigation and
+                future authentication. The detailed operational summary now lives on a dedicated
+                overview page instead of crowding the home screen.
+              </p>
             </div>
 
             <div className="flex flex-wrap gap-3">
+              <Link
+                href="/overview"
+                className="rounded-full border border-accent-strong bg-accent-strong px-5 py-3 text-sm font-semibold text-white shadow-sm shadow-orange-900/10 transition-transform hover:-translate-y-0.5"
+              >
+                Open system overview
+              </Link>
               <Link
                 href={roleDefinitions.command.href}
                 className="rounded-full border border-accent bg-accent px-5 py-3 text-sm font-semibold text-white shadow-sm shadow-accent/20 transition-transform hover:-translate-y-0.5"
@@ -61,96 +50,56 @@ export default function Home() {
                 Open captain console
               </Link>
             </div>
-
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {metrics.map((metric) => (
-                <div key={metric.label} className="rounded-2xl border border-line bg-white/70 p-4">
-                  <p className="text-sm text-muted">{metric.label}</p>
-                  <p className="mt-2 text-2xl font-semibold text-foreground">{metric.value}</p>
-                </div>
-              ))}
-            </div>
           </div>
 
           <SectionCard
-            title="Operational scope"
-            description="Use the home page as a routing point into the live command and captain dashboards."
+            title="Recommended access model"
+            description="The challenge is graded around Command and Captain. Admin access should support those roles, not compete with them."
             tone="accent"
           >
-            <dl className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <dt className="text-sm text-muted">Operational area</dt>
-                <dd className="mt-1 text-lg font-semibold text-foreground">Strait of Hormuz</dd>
-              </div>
-              <div>
-                <dt className="text-sm text-muted">Navigable polygon points</dt>
-                <dd className="mt-1 text-lg font-semibold text-foreground">
-                  {overview.navigableVertexCount}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm text-muted">Concurrent viewers target</dt>
-                <dd className="mt-1 text-lg font-semibold text-foreground">
-                  {gradingThresholds.minConcurrentWatchers}+
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm text-muted">Playback window</dt>
-                <dd className="mt-1 text-lg font-semibold text-foreground">
-                  {gradingThresholds.playbackWindowMinutes} min @{" "}
-                  {gradingThresholds.playbackResolutionSeconds}s
-                </dd>
-              </div>
-            </dl>
-            <div className="mt-5 rounded-2xl border border-line bg-white/70 p-4 text-sm leading-7 text-muted">
-              Launch Fleet Command to manage the whole situation, or open a captain console to work
-              from a single ship&apos;s bridge view.
+            <div className="grid gap-3 text-sm leading-7 text-muted">
+              {[
+                "Keep the live runtime centered on the two required interfaces: Command and Captain.",
+                "Use invitation-only onboarding for future auth so a super admin assigns the role before the first login.",
+                "Let captains reach only their assigned ship route, while Command keeps fleet-wide control.",
+                "Avoid open public sign-up on the judged build because it adds extra workflow without helping the core requirements.",
+              ].map((item) => (
+                <div key={item} className="rounded-2xl border border-line bg-white/70 px-4 py-3">
+                  {item}
+                </div>
+              ))}
             </div>
           </SectionCard>
         </div>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-2">
+      <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <RoleEntryCard {...roleDefinitions.command} />
-        <RoleEntryCard {...roleDefinitions.captain} />
-      </section>
-
-      <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <ShipRosterPreview ships={captainSamples} />
         <SectionCard
-          title="What each dashboard handles"
-          description="The command and captain routes share the same live backend, but each page is focused on a different operational role."
+          title="Super admin direction"
+          description="Best fit for the next security phase without weakening the current operational brief."
         >
-          <div className="grid gap-3">
-            {operationalHighlights.map((item) => (
-              <div key={item.title} className="rounded-2xl border border-line bg-white/70 p-4">
-                <h3 className="text-base font-semibold text-foreground">{item.title}</h3>
-                <p className="mt-2 text-sm leading-7 text-muted">{item.body}</p>
-              </div>
-            ))}
+          <div className="grid gap-3 text-sm leading-7 text-muted">
+            <div className="rounded-2xl border border-line bg-white/70 p-4">
+              The super admin should manage people, roles, invitations, and ship assignments. It
+              should not become a third live crisis role that distracts from Command and Captain.
+            </div>
+            <div className="rounded-2xl border border-line bg-white/70 p-4">
+              The strongest onboarding flow for this project is admin-created invitations: enter
+              name, email, role, and captain ship assignment, then let the user set their password
+              from the invite link.
+            </div>
+            <div className="rounded-2xl border border-line bg-white/70 p-4">
+              Self-sign-up with later approval is possible, but it adds unnecessary queue logic,
+              public entry points, and edge cases that do not improve the judged operational core.
+            </div>
           </div>
         </SectionCard>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-3">
-        {[
-          {
-            title: "Restricted zones and alerts",
-            body: "Command can draw or edit zones, and the shared alert model tracks geofence, routing, weather, distress, and proximity issues in one place.",
-          },
-          {
-            title: "Directives and distress",
-            body: "Command sends directives, captains respond immediately, and free-form distress messages are converted into structured operational alerts.",
-          },
-          {
-            title: "Playback and diagnostics",
-            body: "The command dashboard includes a playback timeline and runtime diagnostics for cadence, weather mode, and buffer depth.",
-          },
-        ].map((item) => (
-          <SectionCard key={item.title} title={item.title}>
-            <p className="text-sm leading-7 text-muted">{item.body}</p>
-          </SectionCard>
-        ))}
+      <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+        <ShipRosterPreview ships={captainSamples} />
+        <RoleEntryCard {...roleDefinitions.captain} />
       </section>
     </main>
   );

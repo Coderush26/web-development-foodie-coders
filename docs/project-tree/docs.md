@@ -1,6 +1,7 @@
 # docs
 
 - `phases.md`: execution roadmap for the whole build.
+- `auth-db-phases.md`: three-phase expansion plan for invite-based admin onboarding, local-first Postgres plus Drizzle, and protected role routes without replacing the live in-memory runtime.
 - `project-guide.md`: simple full-project explanation covering pages, buttons, features, internal routes, and why auth or a database are not required for this challenge.
 - `demo-checklist.md`: grading-oriented end-to-end checklist for startup, command flow, captain flow, and playback review.
 - `problem-statement/`: grading statement and shared fleet seed.

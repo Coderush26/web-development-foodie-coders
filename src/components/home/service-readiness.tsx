@@ -2,7 +2,6 @@ type ExternalService = {
   name: string;
   purpose: string;
   apiKeyEnv: string | null;
-  requiredInPhase: string;
   configured: boolean;
   notes: string;
 };

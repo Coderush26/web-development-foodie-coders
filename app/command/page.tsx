@@ -13,9 +13,15 @@ export default function CommandPage() {
         <div className="flex flex-wrap gap-3">
           <Link
             href="/"
-            className="rounded-full border border-line bg-white/70 px-4 py-2 text-sm font-semibold text-foreground"
+            className="rounded-full border border-foreground bg-foreground px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-slate-900/10"
           >
-            Back to navigation
+            Open access portal
+          </Link>
+          <Link
+            href="/overview"
+            className="rounded-full border border-accent-strong bg-accent-strong px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-orange-900/10"
+          >
+            Open system overview
           </Link>
           <Link
             href="/captain/MV-1"

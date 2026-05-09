@@ -21,7 +21,6 @@ export const externalServices = [
     name: "Open-Meteo",
     purpose: "Weather overlays, adverse-weather penalties, and route scoring.",
     apiKeyEnv: null,
-    requiredInPhase: "Phase 6",
     configured: true,
     notes: "No API key is required for the initial weather implementation.",
   },
@@ -30,7 +29,6 @@ export const externalServices = [
     purpose:
       "Distress-message extraction when you want a real model instead of the local fallback parser.",
     apiKeyEnv: "OPENAI_API_KEY",
-    requiredInPhase: "Phase 5 (optional)",
     configured: runtimeConfig.aiProvider === "local" ? false : runtimeConfig.openAiApiKeyConfigured,
     notes:
       runtimeConfig.aiProvider === "local"

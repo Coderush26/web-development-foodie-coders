@@ -1,7 +1,8 @@
 # app
 
 - `layout.tsx`: global fonts, metadata, and root shell.
-- `page.tsx`: project entry screen with role selection, seed overview, and env planning.
+- `page.tsx`: home access portal with role launch paths and guidance for the future auth model.
+- `overview/page.tsx`: dedicated operational summary route for fleet scope, thresholds, and launch paths.
 - `command/page.tsx`: command dashboard route with the live map, restricted-zone control, directive issuance, shared alerts, and the operational event stream.
 - `captain/[shipId]/page.tsx`: ship-scoped captain dashboard with a focused bridge map, directive inbox, distress escalation, shared alerts, and nearby context.
 - `api/fleet/route.ts`: no-cache bootstrap endpoint for the authoritative runtime snapshot.

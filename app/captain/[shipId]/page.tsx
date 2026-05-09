@@ -33,10 +33,16 @@ export default async function CaptainPage({ params }: CaptainPageProps) {
             Open command center
           </Link>
           <Link
-            href="/"
-            className="rounded-full border border-line bg-white/70 px-4 py-2 text-sm font-semibold text-foreground"
+            href="/overview"
+            className="rounded-full border border-accent-strong bg-accent-strong px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-orange-900/10"
           >
-            Back to navigation
+            Open system overview
+          </Link>
+          <Link
+            href="/"
+            className="rounded-full border border-foreground bg-foreground px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-slate-900/10"
+          >
+            Open access portal
           </Link>
         </div>
       }

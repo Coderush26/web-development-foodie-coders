@@ -28,17 +28,19 @@ The system also includes:
 ### `/`
 
 Purpose:
-This is the home navigation page. It is not a fake demo page. It is the entry point that helps you open the correct operational dashboard.
+This is the home access portal. It is intentionally lighter now and is meant to route people into the correct operational screen.
 
 What you can do here:
 
+- open the system overview page
 - open the Command dashboard
 - open a Captain dashboard
-- see the main operational scope of the system
 - jump into one of the captain bridge routes quickly
+- read the recommended future access model for admin, command, and captain roles
 
 Main buttons on this page:
 
+- `Open system overview`: opens the dedicated operational summary page at `/overview`
 - `Open command center`: opens the full-fleet Command dashboard at `/command`
 - `Open captain console`: opens a ship-scoped Captain dashboard at `/captain/MV-1`
 - `Open dashboard` inside Fleet Command card: opens the Command dashboard
@@ -47,9 +49,27 @@ Main buttons on this page:
 
 Why this page exists:
 
-- the project has more than one dashboard
-- Command and Captain are separate operational views
-- judges or operators need a clear place to decide where to go first
+- the project has more than one route
+- Command and Captain are still the two operational roles that matter most
+- the detailed overview now lives on its own page instead of filling the home route
+
+### `/overview`
+
+Purpose:
+This is the dedicated operational summary page.
+
+What you can do here:
+
+- review the scenario scope and live thresholds
+- understand what Command and Captain each handle
+- jump into the command or captain dashboards
+- open ship-scoped captain routes from the bridge-console list
+
+Main buttons on this page:
+
+- `Open access portal`: returns to `/`
+- `Open command center`: opens `/command`
+- `Open captain console`: opens `/captain/MV-1`
 
 ### `/command`
 
@@ -60,7 +80,8 @@ Command can see the full situation and act on any ship.
 
 Top buttons:
 
-- `Back to navigation`: returns to the home page
+- `Open access portal`: returns to the home page
+- `Open system overview`: opens `/overview`
 - `Open captain console`: opens a captain route quickly for comparison or testing
 
 Main sections on this page:
@@ -259,7 +280,8 @@ Each captain page is limited to a single ship.
 Top buttons:
 
 - `Open command center`: opens the Command dashboard
-- `Back to navigation`: returns to the home page
+- `Open system overview`: opens `/overview`
+- `Open access portal`: returns to the home page
 
 Main sections on this page:
 

@@ -41,30 +41,3 @@ export const roleDefinitions = {
 } as const;
 
 export const captainSampleShipIds = ["MV-1", "MV-7", "MV-13"] as const;
-
-export const phaseOneWorkstreams = [
-  {
-    title: "Shared domain model",
-    body: "Ship, alert, directive, weather, and playback types now live in one reusable layer.",
-    detail:
-      "Later phases can build simulation, routing, and UI features without redefining the same objects in multiple places.",
-  },
-  {
-    title: "Scenario seed loader",
-    body: "The app reads the grading fleet JSON through a typed parser instead of embedding demo-only values in the UI.",
-    detail:
-      "That keeps the source of truth stable and gives future phases one place to validate ports, ships, and bounds.",
-  },
-  {
-    title: "Role route shells",
-    body: "Command and Captain routes already exist with stable layouts and shared navigation.",
-    detail:
-      "Later phases can focus on behavior and data flow without reopening the route structure.",
-  },
-  {
-    title: "Integration prep",
-    body: "Optional AI and weather configuration is documented now so later phases do not invent env names ad hoc.",
-    detail:
-      "Open-Meteo needs no key, while AI stays optional behind a provider toggle and local fallback plan.",
-  },
-] as const;
