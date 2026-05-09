@@ -1,13 +1,22 @@
+import { cookies } from "next/headers";
 import Link from "next/link";
 
+import { AuthModeToggleCard } from "@/components/home/auth-mode-toggle-card";
 import { RoleEntryCard } from "@/components/home/role-entry-card";
 import { ShipRosterPreview } from "@/components/home/ship-roster-preview";
 import { SectionCard } from "@/components/shell/section-card";
+import { AUTH_MODE_COOKIE, AUTH_SESSION_COOKIE, resolveAuthMode } from "@/config/auth";
 import { appCopy, roleDefinitions } from "@/config/scenario";
 import { listCaptainRouteSamples } from "@/features/fleet/data/scenario-seed";
+import { isAuthDatabaseConfigured } from "@/server/auth/db";
+import { getSessionIdentity } from "@/server/auth/session";
 
-export default function Home() {
+export default async function Home() {
+  const cookieStore = await cookies();
   const captainSamples = listCaptainRouteSamples();
+  const authMode = resolveAuthMode(cookieStore.get(AUTH_MODE_COOKIE)?.value);
+  const session = await getSessionIdentity(cookieStore.get(AUTH_SESSION_COOKIE)?.value);
+  const databaseConfigured = isAuthDatabaseConfigured();
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-8 px-6 py-8 lg:px-10 lg:py-12">
@@ -96,6 +105,19 @@ export default function Home() {
           </div>
         </SectionCard>
       </section>
+
+      <AuthModeToggleCard
+        initialMode={authMode}
+        databaseConfigured={databaseConfigured}
+        currentSession={
+          session
+            ? {
+                fullName: session.fullName,
+                roles: session.roles,
+              }
+            : null
+        }
+      />
 
       <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
         <ShipRosterPreview ships={captainSamples} />

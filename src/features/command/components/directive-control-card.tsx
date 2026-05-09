@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { SectionCard } from "@/components/shell/section-card";
-import { getFleetScenarioSeed } from "@/features/fleet/data/scenario-seed";
+import { getFleetScenarioSeed, getPortById } from "@/features/fleet/data/scenario-seed";
 import type { FleetDisplayShip } from "@/features/fleet/hooks/use-interpolated-fleet-view";
 import type { FleetDirective } from "@/types/directives";
 import type { GeoPoint } from "@/types/fleet";
@@ -23,9 +23,25 @@ type DirectiveControlCardProps = {
 
 const scenarioSeed = getFleetScenarioSeed();
 
+function formatDirectiveTypeLabel(type: FleetDirective["type"]) {
+  if (type === "reroute-port") {
+    return "Reroute to port";
+  }
+
+  if (type === "divert-waypoint") {
+    return "Divert to waypoint";
+  }
+
+  return "Hold position";
+}
+
+function formatPortLabel(portId: string | undefined) {
+  return portId ? (getPortById(portId)?.name ?? portId) : "alternate port";
+}
+
 function describeDirectiveTarget(directive: FleetDirective) {
   if (directive.type === "reroute-port") {
-    return directive.targetPortId ?? "alternate port";
+    return formatPortLabel(directive.targetPortId);
   }
 
   if (directive.type === "divert-waypoint" && directive.waypoint) {
@@ -33,6 +49,44 @@ function describeDirectiveTarget(directive: FleetDirective) {
   }
 
   return "hold position";
+}
+
+function describeIntent(selectedShip: FleetDisplayShip) {
+  if (selectedShip.intent.type === "destination-port") {
+    return `Destination port (${formatPortLabel(selectedShip.intent.portId ?? selectedShip.destinationPortId)})`;
+  }
+
+  if (selectedShip.intent.type === "waypoint" && selectedShip.intent.waypoint) {
+    return `Waypoint (${selectedShip.intent.waypoint.lat.toFixed(3)}, ${selectedShip.intent.waypoint.lng.toFixed(3)})`;
+  }
+
+  return "Hold position";
+}
+
+function getDirectiveOutcomeMessage(input: {
+  directiveType: "reroute-port" | "divert-waypoint" | "hold-position";
+  targetPortId: string;
+  waypointLat: string;
+  waypointLng: string;
+}) {
+  if (input.directiveType === "reroute-port") {
+    return `After the captain accepts, the ship switches destination to ${formatPortLabel(input.targetPortId)}. On the next server tick, routing and heading are recomputed automatically.`;
+  }
+
+  if (input.directiveType === "divert-waypoint") {
+    const normalizedLat = input.waypointLat.trim();
+    const normalizedLng = input.waypointLng.trim();
+    const lat = Number(normalizedLat);
+    const lng = Number(normalizedLng);
+    const waypointLabel =
+      normalizedLat && normalizedLng && Number.isFinite(lat) && Number.isFinite(lng)
+        ? `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+        : "the waypoint coordinates you enter";
+
+    return `After the captain accepts, the ship heads toward ${waypointLabel} on the next server tick. The live routing layer then continues from that waypoint.`;
+  }
+
+  return "After the captain accepts, the ship speed drops to 0 on the next server tick and the vessel holds position until a later directive changes intent.";
 }
 
 export function DirectiveControlCard({
@@ -59,6 +113,12 @@ export function DirectiveControlCard({
     targetPortId && portOptions.some((port) => port.id === targetPortId)
       ? targetPortId
       : (portOptions[0]?.id ?? "");
+  const directiveOutcomeMessage = getDirectiveOutcomeMessage({
+    directiveType,
+    targetPortId: effectiveTargetPortId,
+    waypointLat,
+    waypointLng,
+  });
 
   async function handleSubmit(formData: FormData) {
     if (!selectedShip) {
@@ -96,8 +156,15 @@ export function DirectiveControlCard({
     }
 
     if (nextDirectiveType === "divert-waypoint") {
-      const lat = Number(waypointLat);
-      const lng = Number(waypointLng);
+      const normalizedLat = waypointLat.trim();
+      const normalizedLng = waypointLng.trim();
+
+      if (!normalizedLat || !normalizedLng) {
+        return;
+      }
+
+      const lat = Number(normalizedLat);
+      const lng = Number(normalizedLng);
 
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
         return;
@@ -108,6 +175,8 @@ export function DirectiveControlCard({
 
     await onIssueDirective(command);
     setNote("");
+    setWaypointLat("");
+    setWaypointLng("");
   }
 
   return (
@@ -117,15 +186,15 @@ export function DirectiveControlCard({
       tone="accent"
     >
       {selectedShip ? (
-        <div className="grid gap-4">
+        <>
           <div className="rounded-2xl border border-line bg-white/70 p-4">
             <p className="font-mono text-xs uppercase tracking-[0.24em] text-accent">
               {selectedShip.shipId}
             </p>
             <p className="mt-2 text-lg font-semibold text-foreground">{selectedShip.name}</p>
             <p className="mt-2 text-sm leading-7 text-muted">
-              Current intent: {selectedShip.intent.type}. Current destination:{" "}
-              {selectedShip.destinationPortId}.
+              Current intent: {describeIntent(selectedShip)}. Current destination:{" "}
+              {formatPortLabel(selectedShip.destinationPortId)}.
             </p>
           </div>
 
@@ -137,7 +206,11 @@ export function DirectiveControlCard({
               <select
                 name="directiveType"
                 value={directiveType}
-                onChange={(event) => setDirectiveType(event.target.value as typeof directiveType)}
+                onChange={(event) =>
+                  setDirectiveType(
+                    event.target.value as "reroute-port" | "divert-waypoint" | "hold-position"
+                  )
+                }
                 className="rounded-2xl border border-line bg-white/90 px-4 py-3 text-sm text-foreground"
               >
                 <option value="reroute-port">Reroute to port</option>
@@ -166,31 +239,47 @@ export function DirectiveControlCard({
             ) : null}
 
             {directiveType === "divert-waypoint" ? (
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className="grid gap-2 text-sm text-foreground">
+              <div className="grid gap-4">
+                <label className="grid min-w-0 gap-2 text-sm text-foreground">
                   <span className="font-semibold uppercase tracking-[0.16em] text-muted">
                     Waypoint latitude
                   </span>
                   <input
+                    type="number"
+                    inputMode="decimal"
+                    step="any"
+                    min={scenarioSeed.bounds.south}
+                    max={scenarioSeed.bounds.north}
+                    required={directiveType === "divert-waypoint"}
                     value={waypointLat}
                     onChange={(event) => setWaypointLat(event.target.value)}
                     placeholder={selectedShip.displayPosition.lat.toFixed(4)}
-                    className="rounded-2xl border border-line bg-white/90 px-4 py-3 text-sm text-foreground"
+                    className="w-full rounded-2xl border border-line bg-white/90 px-4 py-3 text-sm text-foreground"
                   />
                 </label>
-                <label className="grid gap-2 text-sm text-foreground">
+                <label className="grid min-w-0 gap-2 text-sm text-foreground">
                   <span className="font-semibold uppercase tracking-[0.16em] text-muted">
                     Waypoint longitude
                   </span>
                   <input
+                    type="number"
+                    inputMode="decimal"
+                    step="any"
+                    min={scenarioSeed.bounds.west}
+                    max={scenarioSeed.bounds.east}
+                    required={directiveType === "divert-waypoint"}
                     value={waypointLng}
                     onChange={(event) => setWaypointLng(event.target.value)}
                     placeholder={selectedShip.displayPosition.lng.toFixed(4)}
-                    className="rounded-2xl border border-line bg-white/90 px-4 py-3 text-sm text-foreground"
+                    className="w-full rounded-2xl border border-line bg-white/90 px-4 py-3 text-sm text-foreground"
                   />
                 </label>
               </div>
             ) : null}
+
+            <div className="rounded-2xl border border-line bg-white/70 p-4 text-sm leading-7 text-muted">
+              {directiveOutcomeMessage}
+            </div>
 
             <label className="grid gap-2 text-sm text-foreground">
               <span className="font-semibold uppercase tracking-[0.16em] text-muted">
@@ -223,7 +312,9 @@ export function DirectiveControlCard({
                 <div key={directive.id} className="rounded-2xl border border-line bg-white/70 p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-foreground">{directive.type}</p>
+                      <p className="text-sm font-semibold text-foreground">
+                        {formatDirectiveTypeLabel(directive.type)}
+                      </p>
                       <p className="mt-1 text-sm text-muted">
                         {describeDirectiveTarget(directive)}
                       </p>
@@ -244,11 +335,11 @@ export function DirectiveControlCard({
               <p className="text-sm leading-7 text-muted">No directives sent to this ship yet.</p>
             )}
           </div>
-        </div>
+        </>
       ) : (
-        <p className="text-sm leading-7 text-muted">
+        <div className="rounded-2xl border border-dashed border-line bg-white/60 p-5 text-sm leading-7 text-muted">
           Select a ship to send directives and inspect its directive history.
-        </p>
+        </div>
       )}
     </SectionCard>
   );

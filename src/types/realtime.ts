@@ -43,6 +43,8 @@ export interface FleetRuntimeSnapshot {
 
 export interface FleetBootstrapPayload {
   snapshot: FleetRuntimeSnapshot;
-  socketPath: string;
+  socketPath: string | null;
   protocolVersion: number;
+  realtimeTransport: "websocket" | "snapshot";
+  transportMessage?: string | null;
 }

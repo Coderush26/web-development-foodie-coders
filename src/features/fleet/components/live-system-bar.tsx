@@ -35,6 +35,10 @@ function connectionClasses(connectionState: string) {
     return "border-accent-strong/20 bg-orange-50 text-accent-strong";
   }
 
+  if (connectionState === "closed") {
+    return "border-accent-strong/20 bg-orange-50 text-accent-strong";
+  }
+
   return "border-line bg-white/70 text-muted";
 }
 

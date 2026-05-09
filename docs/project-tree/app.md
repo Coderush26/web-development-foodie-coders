@@ -1,10 +1,14 @@
 # app
 
 - `layout.tsx`: global fonts, metadata, and root shell.
-- `page.tsx`: home access portal with role launch paths and guidance for the future auth model.
+- `page.tsx`: home access portal with role launch paths plus the browser-scoped auth-mode toggle for the new protected-mode foundation.
 - `overview/page.tsx`: dedicated operational summary route for fleet scope, thresholds, and launch paths.
 - `command/page.tsx`: command dashboard route with the live map, restricted-zone control, directive issuance, shared alerts, and the operational event stream.
 - `captain/[shipId]/page.tsx`: ship-scoped captain dashboard with a focused bridge map, directive inbox, distress escalation, shared alerts, and nearby context.
+- `auth/login/page.tsx`: bootstrap protected-mode sign-in screen for the Phase 1 auth foundation.
+- `api/auth/login/route.ts`: bootstrap admin login endpoint that sets the protected-mode session cookie.
+- `api/auth/logout/route.ts`: protected-mode logout endpoint that revokes the current session.
+- `api/auth/mode/route.ts`: route that flips the current browser between no-auth mode and protected mode.
 - `api/fleet/route.ts`: no-cache bootstrap endpoint for the authoritative runtime snapshot.
 - `api/fleet/playback/route.ts`: no-cache playback-history endpoint for the last hour of captured fleet frames and event buckets.
 - `api/fleet/diagnostics/route.ts`: no-cache runtime diagnostics endpoint for demo cadence, weather fallback, playback depth, and distress-provider mode.

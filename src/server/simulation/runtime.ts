@@ -81,11 +81,17 @@ class FleetRuntime {
     return this.snapshot;
   }
 
-  getBootstrapPayload(): FleetBootstrapPayload {
+  getBootstrapPayload(options?: {
+    socketPath?: string | null;
+    realtimeTransport?: FleetBootstrapPayload["realtimeTransport"];
+    transportMessage?: string | null;
+  }): FleetBootstrapPayload {
     return {
       snapshot: this.snapshot,
-      socketPath: FLEET_SOCKET_PATH,
+      socketPath: options?.socketPath ?? FLEET_SOCKET_PATH,
       protocolVersion: FLEET_PROTOCOL_VERSION,
+      realtimeTransport: options?.realtimeTransport ?? "websocket",
+      transportMessage: options?.transportMessage ?? null,
     };
   }
 

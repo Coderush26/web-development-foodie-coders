@@ -63,6 +63,82 @@ test("accepted reroute directives change ship intent before the next simulation 
   assert.equal(acceptedSnapshot.events[0]?.kind, "response");
 });
 
+test("accepted waypoint directives point the ship at the waypoint before the next tick", () => {
+  const initialSnapshot = createInitialFleetSnapshot();
+  const originalShip = initialSnapshot.ships[0];
+  const waypoint = {
+    lat: originalShip.position.lat - 0.35,
+    lng: originalShip.position.lng + 0.42,
+  };
+
+  const issuedSnapshot = issueDirective(initialSnapshot, {
+    shipId: originalShip.shipId,
+    type: "divert-waypoint",
+    waypoint,
+    note: "Clear the choke point before resuming the original route.",
+  });
+
+  assert.ok(issuedSnapshot, "Expected waypoint directive issuance to succeed.");
+
+  const directive = issuedSnapshot.directives[0];
+  const acceptedSnapshot = acceptDirective(issuedSnapshot, directive.id);
+
+  assert.ok(acceptedSnapshot, "Expected captain acceptance to succeed.");
+
+  const appliedSnapshot = applyAcceptedDirectivesToSnapshot(
+    acceptedSnapshot,
+    "2026-05-09T10:02:00.000Z"
+  );
+  const appliedShip = getShip(appliedSnapshot, originalShip.shipId);
+
+  assert.equal(appliedShip.intent.type, "waypoint");
+  assert.equal(appliedShip.intent.waypoint?.lat, waypoint.lat);
+  assert.equal(appliedShip.intent.waypoint?.lng, waypoint.lng);
+  assert.notEqual(appliedShip.headingDegrees, originalShip.headingDegrees);
+
+  const nextTickSnapshot = advanceFleetSnapshot(appliedSnapshot, 0, 0);
+  const advancedShip = getShip(nextTickSnapshot, originalShip.shipId);
+
+  assert.equal(advancedShip.intent.type, "waypoint");
+  assert.equal(advancedShip.intent.waypoint?.lat, waypoint.lat);
+  assert.equal(advancedShip.intent.waypoint?.lng, waypoint.lng);
+});
+
+test("accepted hold-position directives stop the ship on the next tick", () => {
+  const initialSnapshot = createInitialFleetSnapshot();
+  const originalShip = initialSnapshot.ships[1];
+
+  const issuedSnapshot = issueDirective(initialSnapshot, {
+    shipId: originalShip.shipId,
+    type: "hold-position",
+    note: "Stand by until the restricted corridor is re-opened.",
+  });
+
+  assert.ok(issuedSnapshot, "Expected hold-position directive issuance to succeed.");
+
+  const directive = issuedSnapshot.directives[0];
+  const acceptedSnapshot = acceptDirective(issuedSnapshot, directive.id);
+
+  assert.ok(acceptedSnapshot, "Expected captain acceptance to succeed.");
+
+  const appliedSnapshot = applyAcceptedDirectivesToSnapshot(
+    acceptedSnapshot,
+    "2026-05-09T10:03:00.000Z"
+  );
+  const appliedShip = getShip(appliedSnapshot, originalShip.shipId);
+
+  assert.equal(appliedShip.intent.type, "hold-position");
+  assert.equal(appliedShip.speedKnots, 0);
+  assert.equal(appliedShip.status, "stopped");
+
+  const nextTickSnapshot = advanceFleetSnapshot(appliedSnapshot, 0, 0);
+  const advancedShip = getShip(nextTickSnapshot, originalShip.shipId);
+
+  assert.equal(advancedShip.intent.type, "hold-position");
+  assert.equal(advancedShip.speedKnots, 0);
+  assert.equal(advancedShip.status, "stopped");
+});
+
 test("distress escalation uses the fallback parser and creates a structured distress alert", async () => {
   const initialSnapshot = createInitialFleetSnapshot();
   const ship = initialSnapshot.ships[0];

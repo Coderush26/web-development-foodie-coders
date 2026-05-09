@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
+import { resolveRequestAccess } from "@/server/auth/request";
 import { extractDistressAssessment } from "@/server/directives/distress-extractor";
 import { getFleetRuntime } from "@/server/simulation/runtime";
 import type { FleetControlCommand } from "@/types/control";
@@ -132,12 +134,35 @@ function parseCommand(value: unknown): FleetControlCommand | null {
   return null;
 }
 
-export async function POST(request: Request) {
+function resolveAllowedRolesForCommand(command: FleetControlCommand) {
+  if (
+    command.type === "zone.create" ||
+    command.type === "zone.update" ||
+    command.type === "zone.delete" ||
+    command.type === "alert.acknowledge" ||
+    command.type === "alert.resolve" ||
+    command.type === "directive.issue"
+  ) {
+    return ["super_admin", "command"] as const;
+  }
+
+  return ["super_admin", "captain"] as const;
+}
+
+export async function POST(request: NextRequest) {
   const value = (await request.json().catch(() => null)) as unknown;
   const command = parseCommand(value);
 
   if (!command) {
     return NextResponse.json({ message: "Invalid fleet control command." }, { status: 400 });
+  }
+
+  const access = await resolveRequestAccess(request, {
+    allowedRoles: resolveAllowedRolesForCommand(command),
+  });
+
+  if (access.response) {
+    return access.response;
   }
 
   const fleetRuntime = getFleetRuntime();

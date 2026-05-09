@@ -115,7 +115,9 @@ export function useFleetStream(shipId?: string) {
 
         const payload = (await response.json()) as {
           snapshot: FleetRuntimeSnapshot;
-          socketPath: string;
+          socketPath: string | null;
+          realtimeTransport: "websocket" | "snapshot";
+          transportMessage?: string | null;
         };
 
         if (!active) {
@@ -124,7 +126,17 @@ export function useFleetStream(shipId?: string) {
 
         lastSequenceRef.current = payload.snapshot.sequence;
         setSnapshot(payload.snapshot);
-        connect(payload.socketPath);
+
+        if (payload.realtimeTransport === "websocket" && payload.socketPath) {
+          connect(payload.socketPath);
+          return;
+        }
+
+        setConnectionState("error");
+        setError(
+          payload.transportMessage ??
+            "Live transport is unavailable on this host. Snapshot mode remains available."
+        );
       } catch (caughtError) {
         if (!active) {
           return;

@@ -2,6 +2,29 @@
 
 This file is for the next productization step, not for the already completed challenge scope.
 
+## Implementation Status
+
+Phase 1 is now partially implemented in the codebase.
+
+Already live:
+
+- home-page auth toggle that switches the current browser between no-auth mode and protected mode
+- Next 16 `proxy.ts` guard for `/command` and `/captain/[shipId]`
+- bootstrap admin sign-in page at `/auth/login`
+- Postgres-backed users, sessions, roles, ship-registry, and audit tables
+- bootstrap fleet seed import into `fleet_ship_registry`
+- protected API guards for bootstrap, control, playback, and diagnostics routes
+- WebSocket session check on Node hosts
+
+Still remaining for later phases:
+
+- member invitations
+- admin dashboard UI
+- forgot-password and reset flows
+- email verification
+- full role-aware page navigation
+- persistent directives, alerts, and zones beyond the current live runtime
+
 ## Straight Answer
 
 - The current project is still valid for the original challenge without login, logout, or a database.
@@ -49,7 +72,7 @@ Primary recommendation for this project:
 
 - Drizzle ORM
 - Postgres-compatible database
-- Better Auth for identity, sessions, invitations, reset-password, and role-aware session handling
+- lightweight internal session layer for Phase 1
 - local Postgres in Docker for judge-safe and laptop-safe runs
 - Resend for real outbound mail in hosted environments
 - console or Mailpit email preview for local judging and development
@@ -59,7 +82,7 @@ Why this stack fits better than Supabase-first here:
 - the challenge explicitly says the system must run end-to-end on a laptop
 - a local Postgres container is reproducible during judging
 - Drizzle is lightweight, typed, and easy to migrate with
-- Better Auth keeps the auth layer inside your own app instead of pushing core identity logic into an external platform
+- the first auth layer stays inside your own app and can later be swapped for a larger auth library if needed
 - Resend can stay optional instead of becoming a mandatory dependency
 
 ## Neon Versus Supabase
@@ -148,7 +171,7 @@ Build in this phase:
 - add Drizzle configuration, schema, and migrations
 - create the core auth, role, profile, ship registry, and assignment tables
 - import the current 15 ships into the database as the initial registry seed
-- integrate Better Auth into the app shell and server utilities
+- integrate the protected-mode auth service into the app shell and server utilities
 - add protected route middleware
 - add server helpers for reading the signed-in user and role
 - bootstrap one initial super admin account
@@ -165,7 +188,7 @@ Deliverables:
 - database schema
 - migration scripts
 - seed script
-- Better Auth setup
+- session service setup
 - protected route shell
 - role model fixed in code and database
 

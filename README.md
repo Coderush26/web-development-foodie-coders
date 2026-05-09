@@ -2,6 +2,8 @@
 
 Fleet Crisis Ops is a laptop-runnable realtime shipping-crisis simulator for the Strait of Hormuz scenario. It runs a server-owned fleet simulation, streams live ship state over WebSocket, and renders separate Command and Captain map dashboards from the same authoritative runtime.
 
+It now also includes an opt-in Phase 1 protected mode. By default, the app still runs exactly as the original no-auth simulator. From the home page, you can switch the current browser into `Authentication enabled` mode to test the new DB-backed route protection without affecting the default open-access demo flow.
+
 The current build includes:
 
 - live fleet simulation for 15 vessels
@@ -61,8 +63,36 @@ The currently recognized runtime variables are:
 - `AI_PROVIDER=local` keeps distress extraction on the deterministic no-key fallback parser
 - `OPENAI_API_KEY`, `OPENAI_BASE_URL`, and `OPENAI_MODEL` are optional if you want real-model distress extraction instead of the local parser
 - `WEATHER_PROVIDER=open-meteo` uses live Open-Meteo weather first and automatically falls back to deterministic synthetic weather if the provider is slow or unavailable
+- `DATABASE_URL` is optional unless you want to use the new protected-mode Phase 1 auth flow
+- `AUTH_BOOTSTRAP_ADMIN_EMAIL`, `AUTH_BOOTSTRAP_ADMIN_PASSWORD`, and `AUTH_BOOTSTRAP_ADMIN_NAME` define the local bootstrap super-admin account for protected mode
+
+The default example `DATABASE_URL` now uses `localhost:5433` so it does not collide with an existing local Postgres already bound to `5432`.
 
 See [.env.example](.env.example) for the current template.
+
+## Protected Mode Toggle
+
+The home page now includes an `Authentication toggle` card.
+
+- `Authentication disabled` keeps the current simulator open and unchanged.
+- `Authentication enabled` turns on route and API protection for the current browser only.
+- when protected mode is enabled, `/command` and `/captain/[shipId]` redirect to `/auth/login` until a valid session exists
+
+Phase 1 currently provides:
+
+- Drizzle schema and Postgres-backed auth foundation
+- bootstrap super-admin creation
+- DB-backed session cookies
+- protected route proxy for Command and Captain pages
+- protected API guards for fleet bootstrap, control, playback, and diagnostics
+- WebSocket auth checks on Node hosts
+
+The bootstrap admin defaults are:
+
+- email: `admin@fleet.local`
+- password: `ChangeMe123!`
+
+Change them through environment variables before sharing the protected mode with anyone else.
 
 ## External Services And Fallbacks
 
@@ -83,7 +113,7 @@ See [.env.example](.env.example) for the current template.
 The Docker setup is intentionally simple:
 
 - `Dockerfile` installs dependencies, builds the Next.js app, and starts the custom Node server.
-- `docker-compose.yml` exposes port `3000` and is designed so `docker compose up` works on a fresh clone.
+- `docker-compose.yml` now starts both the app and a local Postgres service so the new Phase 1 protected mode works in Docker as well.
 - The container runs the same production command as local production mode: `npm run start`.
 
 `docker compose config` resolves cleanly for the current setup, so the compose file is structurally valid before the first container launch.
@@ -102,7 +132,7 @@ The shortest end-to-end demo path is:
 
 ## Vercel Note
 
-Vercel is not a full deployment target for the current architecture.
+Vercel is still not a full deployment target for the current architecture.
 
 This app currently depends on:
 
@@ -111,6 +141,13 @@ This app currently depends on:
 - one in-memory authoritative runtime shared by all connected clients
 
 That works well for local Docker and for Node hosts such as Railway, Render, Fly.io, or a VPS container, but it does not map cleanly to Vercel's serverless model. Vercel can build the Next.js app, but the live custom-server WebSocket runtime used in Phases 2 and 3 will not run there as-is.
+
+The app now handles that more gracefully on Vercel preview-style hosts:
+
+- the bootstrap route reports `snapshot` transport mode instead of attempting the unsupported WebSocket upgrade
+- the client stops retrying the broken socket path and shows a clear host-capability message instead of the raw disconnect loop
+
+This removes the noisy WebSocket failure, but it does not turn Vercel into a full realtime deployment target.
 
 If Vercel deployment becomes mandatory later, the realtime layer will need an architectural change such as:
 

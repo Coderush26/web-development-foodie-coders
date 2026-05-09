@@ -3,7 +3,10 @@ import { createServer } from "node:http";
 import { getRequestHandlers } from "next/dist/server/lib/start-server";
 import { WebSocketServer } from "ws";
 
+import { AUTH_SESSION_COOKIE, authModeValues } from "./src/config/auth";
 import { isFleetSocketPath } from "./src/lib/realtime/messages";
+import { parseCookieHeader, resolveAuthModeFromCookieHeader } from "./src/server/auth/request";
+import { getSessionIdentity } from "./src/server/auth/session";
 import { getFleetRuntime } from "./src/server/simulation/runtime";
 
 const port = Number(process.env.PORT ?? 3000);
@@ -46,6 +49,19 @@ async function main() {
 
   server.on("upgrade", async (request, socket, head) => {
     if (isFleetSocketPath(request.url)) {
+      const authMode = resolveAuthModeFromCookieHeader(request.headers.cookie);
+
+      if (authMode === authModeValues.enabled) {
+        const sessionToken = parseCookieHeader(request.headers.cookie)[AUTH_SESSION_COOKIE];
+        const session = await getSessionIdentity(sessionToken);
+
+        if (!session) {
+          socket.write("HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n");
+          socket.destroy();
+          return;
+        }
+      }
+
       socketServer.handleUpgrade(request, socket, head, (webSocket) => {
         socketServer.emit("connection", webSocket, request);
       });
