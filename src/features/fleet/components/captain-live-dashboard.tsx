@@ -3,10 +3,13 @@
 import { SectionCard } from "@/components/shell/section-card";
 import { AlertCenter } from "@/features/alerts/components/alert-center";
 import { useAlertAudio } from "@/features/alerts/hooks/use-alert-audio";
+import { CaptainDirectiveInbox } from "@/features/captain/components/captain-directive-inbox";
+import { useFleetCaptainControls } from "@/features/captain/hooks/use-fleet-captain-controls";
 import { LiveSystemBar } from "@/features/fleet/components/live-system-bar";
 import { ShipDetailsCard } from "@/features/fleet/components/ship-details-card";
 import { useInterpolatedFleetView } from "@/features/fleet/hooks/use-interpolated-fleet-view";
 import { FleetMap } from "@/features/map/components/fleet-map";
+import { LiveEventStreamCard } from "@/features/playback/components/live-event-stream-card";
 import { haversineDistanceKm } from "@/lib/geo/navigation";
 
 type CaptainLiveDashboardProps = {
@@ -16,6 +19,12 @@ type CaptainLiveDashboardProps = {
 export function CaptainLiveDashboard({ shipId }: CaptainLiveDashboardProps) {
   const { snapshot, displayShips, selectedShip, connectionState, error } =
     useInterpolatedFleetView(shipId);
+  const {
+    acceptDirective,
+    escalateDirective,
+    pendingDirectiveId,
+    error: captainControlError,
+  } = useFleetCaptainControls();
 
   useAlertAudio(snapshot?.alerts ?? []);
 
@@ -44,7 +53,15 @@ export function CaptainLiveDashboard({ shipId }: CaptainLiveDashboardProps) {
           title="Bridge map"
           description="Your vessel stays in focus while restricted zones and the rest of the fleet remain visible as shared context."
         >
-          {error ? <p className="mb-4 text-sm leading-7 text-accent-strong">{error}</p> : null}
+          {[error, captainControlError].filter(Boolean).length > 0 ? (
+            <div className="mb-4 grid gap-2">
+              {[error, captainControlError].filter(Boolean).map((message) => (
+                <p key={message} className="text-sm leading-7 text-accent-strong">
+                  {message}
+                </p>
+              ))}
+            </div>
+          ) : null}
           <FleetMap
             role="captain"
             ships={displayShips}
@@ -55,6 +72,14 @@ export function CaptainLiveDashboard({ shipId }: CaptainLiveDashboardProps) {
         </SectionCard>
 
         <div className="grid gap-6">
+          <CaptainDirectiveInbox
+            shipId={shipId}
+            directives={snapshot?.directives ?? []}
+            captainResponses={snapshot?.captainResponses ?? []}
+            pendingDirectiveId={pendingDirectiveId}
+            onAcceptDirective={acceptDirective}
+            onEscalateDirective={escalateDirective}
+          />
           <AlertCenter alerts={snapshot?.alerts ?? []} role="captain" />
           <ShipDetailsCard ship={selectedShip} roleLabel="Captain" />
 
@@ -87,6 +112,8 @@ export function CaptainLiveDashboard({ shipId }: CaptainLiveDashboardProps) {
               )}
             </div>
           </SectionCard>
+
+          <LiveEventStreamCard events={snapshot?.events ?? []} />
         </div>
       </div>
     </>

@@ -8,6 +8,9 @@ The current build includes:
 - command-side restricted-zone drawing, editing, and deletion
 - captain read-only restricted-zone overlays
 - shared geofence alerts with acknowledge and resolve actions
+- command-issued directives for reroute, waypoint diversion, and hold position
+- captain inbox actions for ACCEPT and ESCALATE_DISTRESS
+- structured distress extraction with an optional OpenAI provider and a built-in no-key local fallback
 
 ## Quick Start
 
@@ -44,13 +47,15 @@ npm run start
 
 ## Environment
 
-Phase 4 does not require any external API key.
+Phase 5 still does not require any external API key.
 
 The currently recognized runtime variables are:
 
 - `HOSTNAME` defaults to `0.0.0.0`
 - `PORT` defaults to `3000`
-- `AI_PROVIDER`, `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `OPENAI_MODEL`, and `WEATHER_PROVIDER` are reserved for later phases and optional integrations
+- `AI_PROVIDER=local` keeps distress extraction on the deterministic no-key fallback parser
+- `OPENAI_API_KEY`, `OPENAI_BASE_URL`, and `OPENAI_MODEL` are optional if you want real-model distress extraction instead of the local parser
+- `WEATHER_PROVIDER` remains reserved for Phase 6 weather work
 
 See [.env.example](.env.example) for the current template.
 
@@ -88,5 +93,14 @@ The app has been verified with:
 - `npm run build`
 - `npm test`
 - live `POST /api/fleet/control` checks for zone create, alert acknowledge, and alert resolve
+- live directive checks for issue, accept, next-tick application, and distress escalation
 - live HTTP checks for `/command`, `/captain/MV-1`, and `/api/fleet`
 - live WebSocket snapshot checks for `/api/fleet/ws`, including zone and alert payloads
+
+## CI
+
+GitHub Actions now runs the core verification pipeline automatically on every push and pull request:
+
+- `npm test`
+- `npm run lint`
+- `npm run build`

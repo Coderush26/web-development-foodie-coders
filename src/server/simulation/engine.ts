@@ -1,6 +1,6 @@
 import { getFleetScenarioSeed } from "@/features/fleet/data/scenario-seed";
-import { haversineDistanceKm, destinationPoint } from "@/lib/geo/navigation";
-import type { Port, ShipStatus } from "@/types/fleet";
+import { bearingBetweenPoints, haversineDistanceKm, destinationPoint } from "@/lib/geo/navigation";
+import type { GeoPoint, Port, ShipStatus } from "@/types/fleet";
 import type {
   FleetRuntimeSnapshot,
   FleetRuntimeTelemetry,
@@ -26,6 +26,43 @@ function getDestinationPort(ship: FleetShipRuntimeSnapshot): Port | undefined {
 
 function getFuelBurnRateTonsPerHour(ship: FleetShipRuntimeSnapshot) {
   return BASE_FUEL_BURN_TONS_PER_HOUR + ship.speedKnots * FUEL_BURN_TONS_PER_HOUR_PER_KNOT;
+}
+
+function getIntentTarget(
+  ship: FleetShipRuntimeSnapshot
+): { kind: "port" | "waypoint"; position: GeoPoint } | null {
+  if (ship.intent.type === "waypoint" && ship.intent.waypoint) {
+    return {
+      kind: "waypoint",
+      position: ship.intent.waypoint,
+    };
+  }
+
+  const destination = getDestinationPort(ship);
+
+  if (!destination) {
+    return null;
+  }
+
+  return {
+    kind: "port",
+    position: destination.position,
+  };
+}
+
+function resolveStoppedStatus(ship: FleetShipRuntimeSnapshot): ShipStatus {
+  if (
+    ship.status === "arrived" ||
+    ship.status === "distressed" ||
+    ship.status === "stranded" ||
+    ship.status === "insufficient-fuel" ||
+    ship.status === "out-of-fuel" ||
+    ship.status === "rerouting"
+  ) {
+    return ship.status;
+  }
+
+  return "stopped";
 }
 
 function getTelemetry(
@@ -54,7 +91,14 @@ function resolveActiveStatus(
     return "out-of-fuel";
   }
 
-  if (ship.status === "arrived" || ship.status === "out-of-fuel") {
+  if (
+    ship.status === "arrived" ||
+    ship.status === "distressed" ||
+    ship.status === "insufficient-fuel" ||
+    ship.status === "out-of-fuel" ||
+    ship.status === "rerouting" ||
+    ship.status === "stranded"
+  ) {
     return ship.status;
   }
 
@@ -71,9 +115,23 @@ function advanceShip(
   tickIntervalMs: number
 ): FleetShipRuntimeSnapshot {
   const destination = getDestinationPort(ship);
+  const intentTarget = getIntentTarget(ship);
   const fuelBurnRateTonsPerHour = getFuelBurnRateTonsPerHour(ship);
 
-  if (!destination) {
+  if (ship.intent.type === "hold-position") {
+    return {
+      ...ship,
+      speedKnots: 0,
+      status: resolveStoppedStatus(ship),
+      lastUpdatedAt: generatedAt,
+      fuelBurnRateTonsPerHour,
+      distanceToDestinationKm: destination
+        ? haversineDistanceKm(ship.position, destination.position)
+        : 0,
+    };
+  }
+
+  if (!destination || !intentTarget) {
     return {
       ...ship,
       lastUpdatedAt: generatedAt,
@@ -82,9 +140,12 @@ function advanceShip(
     };
   }
 
-  const remainingDistanceKm = haversineDistanceKm(ship.position, destination.position);
+  const remainingDistanceKm = haversineDistanceKm(ship.position, intentTarget.position);
 
-  if (remainingDistanceKm <= ARRIVAL_RADIUS_KM || ship.status === "arrived") {
+  if (
+    intentTarget.kind === "port" &&
+    (remainingDistanceKm <= ARRIVAL_RADIUS_KM || ship.status === "arrived")
+  ) {
     return {
       ...ship,
       position: destination.position,
@@ -93,6 +154,21 @@ function advanceShip(
       lastUpdatedAt: generatedAt,
       fuelBurnRateTonsPerHour,
       distanceToDestinationKm: 0,
+    };
+  }
+
+  if (intentTarget.kind === "waypoint" && remainingDistanceKm <= ARRIVAL_RADIUS_KM) {
+    return {
+      ...ship,
+      position: intentTarget.position,
+      speedKnots: 0,
+      status: resolveStoppedStatus(ship),
+      intent: {
+        type: "hold-position",
+      },
+      lastUpdatedAt: generatedAt,
+      fuelBurnRateTonsPerHour,
+      distanceToDestinationKm: haversineDistanceKm(intentTarget.position, destination.position),
     };
   }
 
@@ -130,16 +206,18 @@ function advanceShip(
   }
 
   const nextSpeedKnots = outOfFuel ? 0 : ship.speedKnots;
+  const nextHeadingDegrees = bearingBetweenPoints(ship.position, intentTarget.position);
   const nextPosition =
     travelledDistanceKm > 0
-      ? destinationPoint(ship.position, ship.headingDegrees, travelledDistanceKm)
+      ? destinationPoint(ship.position, nextHeadingDegrees, travelledDistanceKm)
       : ship.position;
-  const nextDistanceToDestinationKm = haversineDistanceKm(nextPosition, destination.position);
+  const nextDistanceToDestinationKm = haversineDistanceKm(nextPosition, intentTarget.position);
 
   return {
     ...ship,
     position: nextPosition,
     speedKnots: nextSpeedKnots,
+    headingDegrees: nextHeadingDegrees,
     fuelTons: Math.max(0, ship.fuelTons - requestedFuel),
     status: resolveActiveStatus(ship, nextSpeedKnots, outOfFuel),
     lastUpdatedAt: generatedAt,
@@ -170,6 +248,9 @@ export function createInitialFleetSnapshot(viewerCount = 0): FleetRuntimeSnapsho
     ships,
     zones: [],
     alerts: [],
+    directives: [],
+    captainResponses: [],
+    events: [],
     telemetry: getTelemetry(ships, viewerCount, 0),
   };
 }

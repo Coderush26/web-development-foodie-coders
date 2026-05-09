@@ -2,6 +2,7 @@
 
 import { AlertCenter } from "@/features/alerts/components/alert-center";
 import { useAlertAudio } from "@/features/alerts/hooks/use-alert-audio";
+import { DirectiveControlCard } from "@/features/command/components/directive-control-card";
 import { useFleetCommandControls } from "@/features/command/hooks/use-fleet-command-controls";
 import { SectionCard } from "@/components/shell/section-card";
 import { FleetSelectionList } from "@/features/fleet/components/fleet-selection-list";
@@ -9,6 +10,7 @@ import { LiveSystemBar } from "@/features/fleet/components/live-system-bar";
 import { ShipDetailsCard } from "@/features/fleet/components/ship-details-card";
 import { useInterpolatedFleetView } from "@/features/fleet/hooks/use-interpolated-fleet-view";
 import { FleetMap } from "@/features/map/components/fleet-map";
+import { LiveEventStreamCard } from "@/features/playback/components/live-event-stream-card";
 
 export function CommandLiveDashboard() {
   const {
@@ -24,9 +26,11 @@ export function CommandLiveDashboard() {
     createZone,
     updateZone,
     deleteZone,
+    issueDirective,
     acknowledgeAlert,
     resolveAlert,
     pendingAlertId,
+    isDirectivePending,
     error: controlError,
   } = useFleetCommandControls();
 
@@ -70,6 +74,12 @@ export function CommandLiveDashboard() {
         </SectionCard>
 
         <div className="grid gap-6">
+          <DirectiveControlCard
+            selectedShip={selectedShip}
+            directives={snapshot?.directives ?? []}
+            isPending={isDirectivePending}
+            onIssueDirective={issueDirective}
+          />
           <AlertCenter
             alerts={snapshot?.alerts ?? []}
             role="command"
@@ -83,6 +93,7 @@ export function CommandLiveDashboard() {
             selectedShipId={selectedShipId}
             onSelectShip={setSelectedShipId}
           />
+          <LiveEventStreamCard events={snapshot?.events ?? []} />
         </div>
       </div>
     </>

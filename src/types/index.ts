@@ -1,5 +1,6 @@
 export * from "@/types/alerts";
 export * from "@/types/control";
+export * from "@/types/distress";
 export * from "@/types/directives";
 export * from "@/types/fleet";
 export * from "@/types/playback";

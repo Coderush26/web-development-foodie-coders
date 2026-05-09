@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 
+import { extractDistressAssessment } from "@/server/directives/distress-extractor";
 import { getFleetRuntime } from "@/server/simulation/runtime";
 import type { FleetControlCommand } from "@/types/control";
+import type { DirectiveType } from "@/types/directives";
 import type { GeoPoint } from "@/types/fleet";
 import type { RestrictedZoneDraft } from "@/types/zones";
 
@@ -44,6 +46,10 @@ function parseZoneDraft(value: unknown): RestrictedZoneDraft | null {
   };
 }
 
+function isDirectiveType(value: unknown): value is DirectiveType {
+  return value === "reroute-port" || value === "divert-waypoint" || value === "hold-position";
+}
+
 function parseCommand(value: unknown): FleetControlCommand | null {
   if (!isObject(value) || typeof value.type !== "string") {
     return null;
@@ -79,6 +85,47 @@ function parseCommand(value: unknown): FleetControlCommand | null {
     return {
       type: value.type,
       alertId: value.alertId,
+    };
+  }
+
+  if (
+    value.type === "directive.issue" &&
+    typeof value.shipId === "string" &&
+    isDirectiveType(value.directiveType)
+  ) {
+    const waypoint = value.waypoint === undefined ? undefined : parseGeoPoint(value.waypoint);
+
+    if (value.waypoint !== undefined && !waypoint) {
+      return null;
+    }
+
+    return {
+      type: value.type,
+      shipId: value.shipId,
+      directiveType: value.directiveType,
+      targetPortId: typeof value.targetPortId === "string" ? value.targetPortId : undefined,
+      waypoint: waypoint ?? undefined,
+      note: typeof value.note === "string" ? value.note : undefined,
+    };
+  }
+
+  if (value.type === "directive.accept" && typeof value.directiveId === "string") {
+    return {
+      type: value.type,
+      directiveId: value.directiveId,
+    };
+  }
+
+  if (
+    value.type === "directive.escalate-distress" &&
+    typeof value.directiveId === "string" &&
+    typeof value.distressMessage === "string" &&
+    value.distressMessage.trim().length > 0
+  ) {
+    return {
+      type: value.type,
+      directiveId: value.directiveId,
+      distressMessage: value.distressMessage.trim(),
     };
   }
 
@@ -129,6 +176,50 @@ export async function POST(request: Request) {
 
     if (!alert) {
       return NextResponse.json({ message: "Alert not found." }, { status: 404 });
+    }
+  }
+
+  if (command.type === "directive.issue") {
+    const snapshot = fleetRuntime.issueDirective({
+      shipId: command.shipId,
+      type: command.directiveType,
+      targetPortId: command.targetPortId,
+      waypoint: command.waypoint,
+      note: command.note,
+    });
+
+    if (!snapshot) {
+      return NextResponse.json(
+        { message: "Directive target was invalid for the selected ship." },
+        { status: 400 }
+      );
+    }
+  }
+
+  if (command.type === "directive.accept") {
+    const snapshot = fleetRuntime.acceptDirective(command.directiveId);
+
+    if (!snapshot) {
+      return NextResponse.json(
+        { message: "Directive not found or already responded to." },
+        { status: 404 }
+      );
+    }
+  }
+
+  if (command.type === "directive.escalate-distress") {
+    const distressAssessment = await extractDistressAssessment(command.distressMessage);
+    const snapshot = fleetRuntime.escalateDirective(
+      command.directiveId,
+      command.distressMessage,
+      distressAssessment
+    );
+
+    if (!snapshot) {
+      return NextResponse.json(
+        { message: "Directive not found or already responded to." },
+        { status: 404 }
+      );
     }
   }
 

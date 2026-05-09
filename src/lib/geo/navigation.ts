@@ -10,6 +10,19 @@ function toDegrees(value: number) {
   return (value * 180) / Math.PI;
 }
 
+export function bearingBetweenPoints(origin: GeoPoint, destination: GeoPoint) {
+  const startLat = toRadians(origin.lat);
+  const endLat = toRadians(destination.lat);
+  const deltaLng = toRadians(destination.lng - origin.lng);
+
+  const y = Math.sin(deltaLng) * Math.cos(endLat);
+  const x =
+    Math.cos(startLat) * Math.sin(endLat) -
+    Math.sin(startLat) * Math.cos(endLat) * Math.cos(deltaLng);
+
+  return (toDegrees(Math.atan2(y, x)) + 360) % 360;
+}
+
 export function haversineDistanceKm(origin: GeoPoint, destination: GeoPoint) {
   const deltaLat = toRadians(destination.lat - origin.lat);
   const deltaLng = toRadians(destination.lng - origin.lng);

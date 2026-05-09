@@ -11,8 +11,16 @@ import {
   parseFleetClientMessage,
 } from "@/lib/realtime/messages";
 import { evaluateGeofenceState } from "@/server/alerts/geofence";
+import {
+  acceptDirective as acceptDirectiveSnapshot,
+  applyAcceptedDirectivesToSnapshot,
+  escalateDirective as escalateDirectiveSnapshot,
+  issueDirective as issueDirectiveSnapshot,
+  type IssueDirectiveInput,
+} from "@/server/directives/service";
 import type { FleetBootstrapPayload, FleetRuntimeSnapshot } from "@/types/realtime";
 import type { FleetAlert } from "@/types/alerts";
+import type { DistressAssessment } from "@/types/distress";
 import type { RestrictedZone, RestrictedZoneDraft } from "@/types/zones";
 
 import { SIMULATION_TICK_MS } from "@/server/simulation/constants";
@@ -31,7 +39,11 @@ class FleetRuntime {
 
     this.intervalHandle = setInterval(() => {
       const tickStartedAt = Date.now();
-      const nextSnapshot = advanceFleetSnapshot(this.snapshot, this.sockets.size, 0);
+      const nextSnapshot = advanceFleetSnapshot(
+        applyAcceptedDirectivesToSnapshot(this.snapshot),
+        this.sockets.size,
+        0
+      );
       const tickDurationMs = Date.now() - tickStartedAt;
 
       this.commitSnapshot({
@@ -196,6 +208,34 @@ class FleetRuntime {
     });
   }
 
+  issueDirective(input: IssueDirectiveInput) {
+    return this.commitMutation((snapshot, generatedAt) =>
+      issueDirectiveSnapshot(snapshot, input, generatedAt)
+    );
+  }
+
+  acceptDirective(directiveId: string) {
+    return this.commitMutation((snapshot, generatedAt) =>
+      acceptDirectiveSnapshot(snapshot, directiveId, generatedAt)
+    );
+  }
+
+  escalateDirective(
+    directiveId: string,
+    distressMessage: string,
+    distressAssessment: DistressAssessment
+  ) {
+    return this.commitMutation((snapshot, generatedAt) =>
+      escalateDirectiveSnapshot(
+        snapshot,
+        directiveId,
+        distressMessage,
+        distressAssessment,
+        generatedAt
+      )
+    );
+  }
+
   private syncViewerCount() {
     this.snapshot = {
       ...this.snapshot,
@@ -227,6 +267,26 @@ class FleetRuntime {
     this.broadcast(createFleetSnapshotMessage(this.snapshot));
   }
 
+  private commitMutation(
+    mutate: (snapshot: FleetRuntimeSnapshot, generatedAt: string) => FleetRuntimeSnapshot | null
+  ) {
+    const generatedAt = new Date().toISOString();
+    const nextSnapshot = mutate(this.snapshot, generatedAt);
+
+    if (!nextSnapshot) {
+      return null;
+    }
+
+    this.commitSnapshot({
+      ...nextSnapshot,
+      generatedAt,
+      sequence: this.snapshot.sequence + 1,
+    });
+    this.publishSnapshot();
+
+    return this.snapshot;
+  }
+
   private updateAlert(
     alertId: string,
     updater: (alert: FleetAlert, generatedAt: string) => FleetAlert
@@ -237,18 +297,12 @@ class FleetRuntime {
       return null;
     }
 
-    const generatedAt = new Date().toISOString();
-    const updatedAlerts = this.snapshot.alerts.map((alert) =>
-      alert.id === alertId ? updater(alert, generatedAt) : alert
-    );
-
-    this.commitSnapshot({
-      ...this.snapshot,
-      generatedAt,
-      sequence: this.snapshot.sequence + 1,
-      alerts: updatedAlerts,
-    });
-    this.publishSnapshot();
+    this.commitMutation((snapshot, generatedAt) => ({
+      ...snapshot,
+      alerts: snapshot.alerts.map((alert) =>
+        alert.id === alertId ? updater(alert, generatedAt) : alert
+      ),
+    }));
 
     return this.snapshot.alerts.find((alert) => alert.id === alertId) ?? existingAlert;
   }

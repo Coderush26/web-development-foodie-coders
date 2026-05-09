@@ -1,4 +1,6 @@
 import type { FleetAlert } from "@/types/alerts";
+import type { CaptainResponse, FleetDirective } from "@/types/directives";
+import type { PlaybackEvent } from "@/types/playback";
 import type { ShipSnapshot } from "@/types/fleet";
 import type { RestrictedZone } from "@/types/zones";
 
@@ -28,6 +30,9 @@ export interface FleetRuntimeSnapshot {
   ships: FleetShipRuntimeSnapshot[];
   zones: RestrictedZone[];
   alerts: FleetAlert[];
+  directives: FleetDirective[];
+  captainResponses: CaptainResponse[];
+  events: PlaybackEvent[];
   telemetry: FleetRuntimeTelemetry;
 }
 
