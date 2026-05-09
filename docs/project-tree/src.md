@@ -13,12 +13,15 @@
 - `features/fleet/data/`: typed loader for the shared fleet JSON seed.
 - `features/fleet/hooks/`: interpolated fleet-view hook that turns authoritative snapshots into smooth client motion.
 - `features/map/components/`: client-only Leaflet map surface, ship markers, and restricted-zone draw or read-only overlays.
-- `features/playback/components/`: shared operational event stream card reused by both roles.
+- `features/playback/components/`: live and historical playback controls plus shared operational event stream cards.
+- `features/playback/hooks/`: command-side hook that combines the live stream with read-only playback history.
 - `lib/geo/`: distance, destination, and polygon helpers used by the simulation engine and geofence checks.
 - `lib/realtime/`: socket protocol helpers, the bootstrap plus WebSocket client hook, and the command control client.
 - `server/alerts/`: server-side geofence evaluation that creates and updates authoritative alerts.
 - `server/directives/`: directive issuance, captain response transitions, and provider-backed distress extraction.
+- `server/playback/`: runtime event diffing plus the one-hour playback ring buffer.
 - `server/simulation/`: authoritative in-memory fleet engine, tick constants, and runtime singleton that now owns directives, responses, events, zones, and alerts.
 - `types/`: shared domain contracts plus runtime snapshot, control-command, distress, alert, and restricted-zone types.
 - `server/alerts/geofence.test.ts`: built-in Node test harness that locks down immediate and delayed geofence alert behavior.
 - `server/directives/service.test.ts`: built-in Node test harness that locks accepted-directive application and distress escalation behavior.
+- `server/playback/*.test.ts`: built-in Node test harness for playback frame capture and runtime event generation.

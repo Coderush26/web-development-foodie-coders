@@ -10,6 +10,8 @@ import {
   createFleetSnapshotMessage,
   parseFleetClientMessage,
 } from "@/lib/realtime/messages";
+import { createPlaybackHistoryState, recordPlaybackSnapshot } from "@/server/playback/history";
+import { mergeRuntimeEvents } from "@/server/playback/events";
 import { evaluateOperationalAlerts } from "@/server/alerts/operational";
 import { evaluateGeofenceState } from "@/server/alerts/geofence";
 import {
@@ -24,6 +26,7 @@ import { FleetWeatherService } from "@/server/routing/weather-service";
 import type { FleetBootstrapPayload, FleetRuntimeSnapshot } from "@/types/realtime";
 import type { FleetAlert } from "@/types/alerts";
 import type { DistressAssessment } from "@/types/distress";
+import type { PlaybackHistoryPayload } from "@/types/playback";
 import type { RestrictedZone, RestrictedZoneDraft } from "@/types/zones";
 
 import { SIMULATION_TICK_MS } from "@/server/simulation/constants";
@@ -32,6 +35,7 @@ import { advanceFleetSnapshot, createInitialFleetSnapshot } from "@/server/simul
 class FleetRuntime {
   private weatherService = new FleetWeatherService();
   private snapshot: FleetRuntimeSnapshot;
+  private playbackHistoryState;
   private intervalHandle: NodeJS.Timeout | null = null;
   private sockets = new Map<WebSocket, string>();
   private membershipByZoneId = new Map<string, Set<string>>();
@@ -40,6 +44,7 @@ class FleetRuntime {
     this.snapshot = evaluateOperationalAlerts(
       applyOperationalPlanning(createInitialFleetSnapshot(), this.weatherService.getSnapshot())
     );
+    this.playbackHistoryState = createPlaybackHistoryState(this.snapshot);
   }
 
   start() {
@@ -80,6 +85,10 @@ class FleetRuntime {
       socketPath: FLEET_SOCKET_PATH,
       protocolVersion: FLEET_PROTOCOL_VERSION,
     };
+  }
+
+  getPlaybackHistory(): PlaybackHistoryPayload {
+    return this.playbackHistoryState.payload;
   }
 
   attachClient(socket: WebSocket) {
@@ -269,14 +278,20 @@ class FleetRuntime {
       previousMembershipByZoneId: this.membershipByZoneId,
     });
     const operationalSnapshot = evaluateOperationalAlerts(evaluation.nextSnapshot);
+    const eventDecoratedSnapshot = mergeRuntimeEvents(this.snapshot, operationalSnapshot);
 
     this.snapshot = {
-      ...operationalSnapshot,
+      ...eventDecoratedSnapshot.snapshot,
       telemetry: {
-        ...operationalSnapshot.telemetry,
+        ...eventDecoratedSnapshot.snapshot.telemetry,
         viewerCount: this.sockets.size,
       },
     };
+    this.playbackHistoryState = recordPlaybackSnapshot(
+      this.playbackHistoryState,
+      this.snapshot,
+      eventDecoratedSnapshot.newEvents
+    );
     this.membershipByZoneId = evaluation.membershipByZoneId;
   }
 

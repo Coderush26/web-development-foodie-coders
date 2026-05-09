@@ -6,6 +6,7 @@ import type { ShipStatus } from "@/types/fleet";
 type ShipDetailsCardProps = {
   ship: FleetDisplayShip | null;
   roleLabel: "Command" | "Captain";
+  mode?: "live" | "playback";
 };
 
 const warningStatuses = new Set<ShipStatus>(["distressed", "stranded", "out-of-fuel"]);
@@ -35,12 +36,16 @@ function formatRouteReason(value: string) {
   return value.replace(/-/g, " ");
 }
 
-export function ShipDetailsCard({ ship, roleLabel }: ShipDetailsCardProps) {
+export function ShipDetailsCard({ ship, roleLabel, mode = "live" }: ShipDetailsCardProps) {
   if (!ship) {
     return (
       <SectionCard
         title="Ship details"
-        description="Choose a vessel on the map or from the live roster to inspect its operational state."
+        description={
+          mode === "playback"
+            ? "Choose a vessel from the historical frame to inspect its captured operational state."
+            : "Choose a vessel on the map or from the live roster to inspect its operational state."
+        }
       >
         <p className="text-sm leading-7 text-muted">
           {roleLabel} does not have an active ship selection yet.
@@ -54,7 +59,11 @@ export function ShipDetailsCard({ ship, roleLabel }: ShipDetailsCardProps) {
   return (
     <SectionCard
       title={`${ship.name} details`}
-      description={`${roleLabel} is reading the current interpolated presentation of the authoritative runtime state.`}
+      description={
+        mode === "playback"
+          ? `${roleLabel} is reviewing a historical playback frame captured from the authoritative runtime.`
+          : `${roleLabel} is reading the current interpolated presentation of the authoritative runtime state.`
+      }
       tone={resolveTone(ship.status)}
     >
       <div className="flex items-start justify-between gap-4">
@@ -91,7 +100,9 @@ export function ShipDetailsCard({ ship, roleLabel }: ShipDetailsCardProps) {
           </dd>
         </div>
         <div>
-          <dt className="text-xs uppercase tracking-[0.2em] text-muted">Interpolated position</dt>
+          <dt className="text-xs uppercase tracking-[0.2em] text-muted">
+            {mode === "playback" ? "Captured position" : "Interpolated position"}
+          </dt>
           <dd className="mt-1 text-sm text-foreground">
             {formatCoordinate(ship.displayPosition.lat)},{" "}
             {formatCoordinate(ship.displayPosition.lng)}
@@ -135,7 +146,9 @@ export function ShipDetailsCard({ ship, roleLabel }: ShipDetailsCardProps) {
           <dd className="mt-1 text-sm text-foreground">{ship.intent.type}</dd>
         </div>
         <div>
-          <dt className="text-xs uppercase tracking-[0.2em] text-muted">Last server tick</dt>
+          <dt className="text-xs uppercase tracking-[0.2em] text-muted">
+            {mode === "playback" ? "Captured at" : "Last server tick"}
+          </dt>
           <dd className="mt-1 text-sm text-foreground">
             {new Date(ship.lastUpdatedAt).toLocaleTimeString()}
           </dd>

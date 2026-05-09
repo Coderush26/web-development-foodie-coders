@@ -26,6 +26,7 @@ export type FleetMapCanvasProps = {
   ships: FleetDisplayShip[];
   zones?: RestrictedZone[];
   weather?: WeatherSnapshot | null;
+  readOnly?: boolean;
   selectedShipId: string | null;
   onSelectShip?: (shipId: string) => void;
   onCreateZone?: (zone: RestrictedZoneDraft) => void | Promise<void>;
@@ -132,6 +133,7 @@ export function FleetMapCanvas({
   ships,
   zones = [],
   weather,
+  readOnly = false,
   selectedShipId,
   onSelectShip,
   onCreateZone,
@@ -168,13 +170,15 @@ export function FleetMapCanvas({
         captainShipId={captainShipId}
       />
 
-      <RestrictedZoneControls
-        role={role}
-        zones={zones}
-        onCreateZone={onCreateZone}
-        onUpdateZone={onUpdateZone}
-        onDeleteZone={onDeleteZone}
-      />
+      {!readOnly ? (
+        <RestrictedZoneControls
+          role={role}
+          zones={zones}
+          onCreateZone={onCreateZone}
+          onUpdateZone={onUpdateZone}
+          onDeleteZone={onDeleteZone}
+        />
+      ) : null}
 
       {scenarioSeed.ports.map((port) => (
         <CircleMarker

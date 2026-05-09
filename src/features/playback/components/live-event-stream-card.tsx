@@ -3,6 +3,9 @@ import type { PlaybackEvent } from "@/types/playback";
 
 type LiveEventStreamCardProps = {
   events: PlaybackEvent[];
+  title?: string;
+  description?: string;
+  emptyMessage?: string;
 };
 
 const kindLabels = {
@@ -12,12 +15,14 @@ const kindLabels = {
   "status-change": "Status",
 } as const;
 
-export function LiveEventStreamCard({ events }: LiveEventStreamCardProps) {
+export function LiveEventStreamCard({
+  events,
+  title = "Operational stream",
+  description = "Recent directive, response, and alert activity from the authoritative runtime appears here for every connected client.",
+  emptyMessage = "No directive or response events have been emitted yet.",
+}: LiveEventStreamCardProps) {
   return (
-    <SectionCard
-      title="Operational stream"
-      description="Recent directive, response, and alert activity from the authoritative runtime appears here for every connected client."
-    >
+    <SectionCard title={title} description={description}>
       <div className="grid gap-3">
         {events.length > 0 ? (
           events.slice(0, 8).map((event) => (
@@ -44,9 +49,7 @@ export function LiveEventStreamCard({ events }: LiveEventStreamCardProps) {
             </article>
           ))
         ) : (
-          <p className="text-sm leading-7 text-muted">
-            No directive or response events have been emitted yet.
-          </p>
+          <p className="text-sm leading-7 text-muted">{emptyMessage}</p>
         )}
       </div>
     </SectionCard>

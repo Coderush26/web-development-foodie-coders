@@ -4,6 +4,9 @@ import type { FleetAlert } from "@/types/alerts";
 type AlertCenterProps = {
   alerts: FleetAlert[];
   role: "command" | "captain";
+  readOnly?: boolean;
+  descriptionOverride?: string;
+  emptyMessage?: string;
   pendingAlertId?: string | null;
   onAcknowledge?: (alertId: string) => void | Promise<void>;
   onResolve?: (alertId: string) => void | Promise<void>;
@@ -41,6 +44,9 @@ function buildAlertMeta(alert: FleetAlert) {
 export function AlertCenter({
   alerts,
   role,
+  readOnly = false,
+  descriptionOverride,
+  emptyMessage = "No active operational alerts are open right now.",
   pendingAlertId,
   onAcknowledge,
   onResolve,
@@ -65,7 +71,7 @@ export function AlertCenter({
     <SectionCard
       title="Alert center"
       description={
-        role === "command"
+        (descriptionOverride ?? role === "command")
           ? "Shared geofence, routing, weather, and proximity alerts land here first. Command can acknowledge or resolve them as the situation changes."
           : "Captains see the same operational alert stream, while acknowledgement stays on the command surface."
       }
@@ -117,7 +123,7 @@ export function AlertCenter({
                   {alert.resolvedAt ? ` · Resolved ${formatTime(alert.resolvedAt)}` : ""}
                 </p>
 
-                {role === "command" ? (
+                {role === "command" && !readOnly ? (
                   <div className="mt-4 flex flex-wrap gap-2">
                     <button
                       type="button"
@@ -138,16 +144,16 @@ export function AlertCenter({
                   </div>
                 ) : (
                   <p className="mt-4 text-xs uppercase tracking-[0.2em] text-muted">
-                    Command owns acknowledgement and resolution.
+                    {readOnly
+                      ? "Playback mode is read-only. Return to live mode to acknowledge or resolve alerts."
+                      : "Command owns acknowledgement and resolution."}
                   </p>
                 )}
               </article>
             );
           })
         ) : (
-          <p className="text-sm leading-7 text-muted">
-            No active operational alerts are open right now.
-          </p>
+          <p className="text-sm leading-7 text-muted">{emptyMessage}</p>
         )}
       </div>
     </SectionCard>
