@@ -19,3 +19,5 @@
 
 - `server.ts`: custom Node server that owns HTTP requests and WebSocket upgrades.
 - `.env.example`: current runtime and optional external-service environment keys.
+- `src/features/fleet/hooks/use-interpolated-fleet-view.ts`: shared client interpolation layer for smooth ship motion.
+- `src/features/map/components/`: client-only Leaflet map stack shared by Command and Captain dashboards.
